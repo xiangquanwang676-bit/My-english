@@ -1,0 +1,754 @@
+<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>电影模式</title>
+<style>
+:root{--bg:#0b1220;--p:#16213a;--t:#e2e8f0;--m:#94a3b8;--a:#38bdf8;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--t);font:16px/1.4 system-ui,sans-serif}
+body{display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#vw{position:relative;background:#000;aspect-ratio:var(--ar,1.5);flex:none;overflow:hidden}
+video{width:100%;height:100%;display:block}
+#mk{position:absolute;left:0;right:0;bottom:0;height:22%;background:#000;display:none;touch-action:none;z-index:1;border-top:2px dashed #475569}
+#ov{position:absolute;left:0;right:0;bottom:var(--ob,4px);text-align:center;padding:0 8px;pointer-events:none;z-index:2;touch-action:none}
+#ov b{color:var(--ecur,#fff);font-weight:700;display:inline-block;background:rgba(0,0,0,.6);padding:1px 6px;border-radius:4px;font-size:calc(17px*var(--fz,1))}
+#ov i{display:block;font-style:normal;font-weight:600;font-size:calc(14px*var(--fz,1));color:var(--cco,#fff);-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:0 0 3px #000,0 0 3px #000}
+#bar{display:flex;gap:8px;overflow-x:auto;padding:8px 10px 12px;flex:none;background:var(--p)}
+.b{flex:none;border:0;border-radius:12px;color:var(--t);padding:9px 13px;font-size:14px;font-weight:600;background:linear-gradient(#3a4d78,#243252);box-shadow:0 4px 0 #101a2e,0 6px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .06s,box-shadow .06s;touch-action:manipulation;user-select:none}
+.b:active{transform:translateY(4px);box-shadow:0 0 0 #101a2e,0 1px 3px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1)}
+.b.on{background:linear-gradient(#66d3ff,#1fa0dc);color:#04202e;box-shadow:0 4px 0 #0b6a95,0 6px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.6)}
+.b.on:active{box-shadow:0 0 0 #0b6a95,0 1px 3px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.3)}
+#ls{flex:1;overflow-y:auto}
+.c{padding:10px 14px;border-bottom:1px solid #1e293b}.c.cur{background:#1a2744}
+.c small{color:var(--m);font-size:12px}.en{font-size:18px;margin:2px 0;color:var(--ec,#e8eaed)}.c.cur .en{color:var(--ecur,#4da3ff)}
+.w{border-bottom:0}.cn{color:var(--cc,#9aa4b2);font-size:15px}
+.s1 .cn,.s1 #ov i,.s3 .cn,.s3 .en,.s3 #ov b,.s3 #ov i{display:none}.s2 .en,.s2 #ov b{display:none}
+#ct{flex:none;background:var(--p);padding:8px 12px}
+.r{display:flex;align-items:center;gap:8px}#sk{flex:1}
+#pl{display:flex;justify-content:center;gap:14px;margin:6px 0 6px}#pl .b{min-width:84px;font-size:16px}
+.pop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:9}
+.sh{background:var(--p);width:100%;max-height:82%;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.sh h2{margin:0 0 6px;font-size:22px}.row{display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap}
+input[type=number],select{background:#0f172a;color:var(--t);border:1px solid #334155;border-radius:8px;padding:6px;width:72px}
+.vi{border-bottom:1px solid #1e293b;padding:8px 0}.vi small{color:var(--m);display:block}
+#lk,#fs,#fit{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));z-index:60;width:42px;height:42px;padding:0;font-size:18px;border-radius:50%;opacity:.3;background:none!important;box-shadow:none!important;transform:none!important;display:flex;align-items:center;justify-content:center}
+#lk svg,#fs svg,#fit svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 2px #000)}
+body.cs #lk,body.cs #fs,body.cs #fit{opacity:.65}
+#lk{right:10px}#fs{right:60px}#fit{right:110px}#tb{display:none}
+#dim{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:55}
+#hud,#bub{position:fixed;left:50%;transform:translateX(-50%);background:rgba(15,23,42,.88);padding:8px 16px;border-radius:12px;z-index:70;display:none;max-width:86%}
+#hud{top:42%;font-size:20px}#bub{bottom:150px;font-size:15px}
+body.lk>*:not(#lk):not(#tt){pointer-events:none}body.lk #fs{display:none}
+#ov{pointer-events:auto}
+@media (orientation:landscape) and (max-height:520px){
+body{padding:0}#vw{position:fixed;inset:0;aspect-ratio:auto;height:100%;max-height:100dvh;z-index:1}#ls{display:none}
+#tb,#bar,#ct{position:fixed;left:0;right:0;z-index:20;display:none;background:rgba(10,16,32,.85)}
+#tb{top:0;padding:8px 112px 8px 10px;align-items:center;gap:10px}#ct{bottom:64px}#bar{bottom:0;padding-bottom:12px}
+body.cs #tb,body.cs #bar{display:flex}body.cs #ct{display:block}
+#ov{bottom:var(--ob,16px)}body.cs #ov{bottom:max(var(--ob,16px),140px)}#ov b{font-size:calc(26px*var(--fz,1))}#ov i{font-size:calc(19px*var(--fz,1))}
+#lk{top:calc(50% + 6px)}#fit{top:calc(50% - 50px);right:10px}body:not(.cs) #fit{display:none}
+#bar #pl{margin:0;gap:8px;flex:none}#bar #pl .b{min-width:0;font-size:14px}
+body.lk #tb,body.lk #bar,body.lk #ct{display:none}}
+@media (min-width:900px) and (min-height:521px){#vw{aspect-ratio:auto;height:60vh}}
+@media (orientation:landscape) and (max-height:520px){#tb,#bar,#ct{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}#tb{padding-right:112px}}
+@media not all and (orientation:landscape) and (max-height:520px){#lk,#fs,#fit{transition:opacity .4s}body:not(.ic):not(.lk) #lk,body:not(.ic):not(.lk) #fs,body:not(.ic):not(.lk) #fit{opacity:0!important;pointer-events:none}}
+#tt{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:#1e293b;padding:8px 14px;border-radius:10px;z-index:99;display:none}
+.b.au{background:linear-gradient(#5ee08a,#1fa85a);color:#042a14;box-shadow:0 4px 0 #0f6b36,0 6px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.55)}
+.b.au:active{box-shadow:0 0 0 #0f6b36,0 1px 3px rgba(0,0,0,.5)}
+.b.pz{background:linear-gradient(#ffd166,#e0a31a);color:#2a1c00;box-shadow:0 4px 0 #8a6200,0 6px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.55)}
+.b.pz:active{box-shadow:0 0 0 #8a6200,0 1px 3px rgba(0,0,0,.5)}
+textarea{width:100%;min-height:72px;background:#0f172a;color:var(--t);border:1px solid #334155;border-radius:8px;padding:8px;font:inherit;font-size:16px;resize:vertical}
+.b.dg{background:linear-gradient(#ff9a9a,#d94444);color:#2a0606;box-shadow:0 4px 0 #8a2222,0 6px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.5)}
+.c.sel{background:#1f3b63;box-shadow:inset 4px 0 0 var(--a)}
+#fvb{display:none;flex:none;flex-wrap:wrap;align-items:center;gap:8px;background:#12304f;border-top:1px solid #1e4a73;padding:8px 12px}
+#fvb span{flex:1 1 100%;font-size:14px;color:#cfe8ff}
+@media (orientation:landscape) and (max-height:520px){#fvb{display:none!important}}
+/* ===== 暗色扁平底栏 ===== */
+#bar{gap:4px;scrollbar-width:none}#bar::-webkit-scrollbar{display:none}
+@media not all and (orientation:landscape) and (max-height:520px){#bar,#ct{background:#0b1322}}
+#bar>.b{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:60px;padding:6px 6px 4px;background:none;box-shadow:none;border-radius:10px;color:#6f7d93;font-size:12px;font-weight:500;white-space:nowrap}
+#bar>.b::before{content:"";width:24px;height:24px;background:currentColor;-webkit-mask-image:var(--i);mask-image:var(--i);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+#bar>.b:active{transform:none;box-shadow:none;opacity:.55}
+#bar>.b.on{background:none;box-shadow:none;color:#5cc8ff}
+#bar>.b.au{background:none;box-shadow:none;color:#34d17a}
+#bar>.b.pz{background:none;box-shadow:none;color:#f5b942}
+#pl .b{background:none;box-shadow:none;border:1px solid #1f2b42;color:#7f8da3;font-weight:500}
+#pl .b.on{background:none;box-shadow:none;color:#b3c2d6;border-color:#2f3f5c}
+#pl .b:active{transform:none;box-shadow:none;opacity:.55}
+#bAu{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v5M9.5 6L12 8.5 14.5 6M12 21v-5M9.5 18L12 15.5 14.5 18M5 12h14'/%3E%3C/svg%3E")}
+#bSm{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M7 11h4M13 11h4M7 15h7'/%3E%3C/svg%3E")}
+#bRp{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 3l3 3-3 3M20 6H8a4 4 0 00-4 4v1M7 21l-3-3 3-3M4 18h12a4 4 0 004-4v-1'/%3E%3C/svg%3E")}
+#bAB{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 19l4-12 4 12M4.6 14h4.8M14 7h2.5a2.5 2.5 0 010 5H14m0 0h3a3.5 3.5 0 010 7h-3V7'/%3E%3C/svg%3E")}
+#bDp{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 21V4M6 5h11l-2 4 2 4H6'/%3E%3C/svg%3E")}
+#bSp{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17a8 8 0 1116 0M12 17l4-5M3 17h2M19 17h2'/%3E%3C/svg%3E")}
+#bMk{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3 14h18'/%3E%3C/svg%3E")}
+#bSk{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5l7 7-7 7M13 5l7 7-7 7'/%3E%3C/svg%3E")}
+#bFm{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 19l4-11 4 11M4.6 15h4.8M15 12h6'/%3E%3C/svg%3E")}
+#bFp{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 19l4-11 4 11M4.6 15h4.8M15 12h6M18 9v6'/%3E%3C/svg%3E")}
+#bEp{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/%3E%3C/svg%3E")}
+#bCa{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8'/%3E%3Cpath d='M12 4v3M12 17v3M4 12h3M17 12h3'/%3E%3C/svg%3E")}
+#bM5{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 6l-6 6 6 6M19 6l-6 6 6 6'/%3E%3C/svg%3E")}
+#bP5{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 6l6 6-6 6M5 6l6 6-6 6'/%3E%3C/svg%3E")}
+#bVb{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 4h12a2 2 0 012 2v14H7a2 2 0 01-2-2zM5 18a2 2 0 012-2h12'/%3E%3C/svg%3E")}
+#bFv{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l2 2 3-3M12 7h8M4 14l2 2 3-3M12 15h8'/%3E%3C/svg%3E")}
+#bFl{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z'/%3E%3C/svg%3E")}
+#bEx{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11M7.5 11L12 15.5 16.5 11M4 19h16'/%3E%3C/svg%3E")}
+#bEd{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20l1-4L16 5l3 3L8 19zM14 7l3 3'/%3E%3C/svg%3E")}
+#bSb{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h8l4 4v14H7zM15 3v4h4M12 11v6M9.5 14.5L12 17l2.5-2.5'/%3E%3C/svg%3E")}
+#bAj{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h10M18 8h2M4 16h2M10 16h10M14 5v6M6 13v6'/%3E%3C/svg%3E")}
+#bSt{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1'/%3E%3C/svg%3E")}
+#bMo{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6' height='6' rx='1.5'/%3E%3Crect x='14' y='4' width='6' height='6' rx='1.5'/%3E%3Crect x='4' y='14' width='6' height='6' rx='1.5'/%3E%3Crect x='14' y='14' width='6' height='6' rx='1.5'/%3E%3C/svg%3E")}
+#mSm{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M7 11h4M13 11h4M7 15h7'/%3E%3C/svg%3E")}
+#mCo{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 19l4-11 4 11M4.6 15h4.8M15 12h6M18 9v6'/%3E%3C/svg%3E")}
+#mFz{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 19l4-11 4 11M4.6 15h4.8M15 12h6M18 9v6'/%3E%3C/svg%3E")}
+/* ===== 更多 列表页 ===== */
+#mp,#ms,#mc{position:fixed;inset:0;z-index:65;background:#0f1626;display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+#ms,#mc{z-index:66}
+.mh{flex:none;display:flex;align-items:center;gap:14px;padding:14px 12px;background:#0b1220;border-bottom:1px solid #1e2a3d}
+.mh span{font-size:20px;font-weight:600}
+.mh .b{background:none;box-shadow:none;font-size:24px;padding:2px 10px;border-radius:8px}
+.mh .b:active{transform:none;box-shadow:none;opacity:.55}
+.ml{flex:1;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+.gl{border-top:1px solid #1e2a3d;border-bottom:1px solid #1e2a3d;background:#161f33}
+.mg{height:18px}
+#mp .m,#ms .m,.mr{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:12px 16px;border-radius:0;background:none;box-shadow:none;border:0;border-bottom:1px solid #243049;color:var(--t);font-size:17px;font-weight:400;text-align:left}
+.gl>:last-child{border-bottom:0!important}
+#mp .m:active,#ms .m:active{transform:none;box-shadow:none;background:#202c45}
+#mp .m.on{background:none;box-shadow:none;color:#5cc8ff}
+#mp .m::before,.mr::before{content:"";flex:none;width:22px;height:22px;background:#8a99b0;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
+#mp .m.go::after{content:"›";margin-left:auto;color:#64748b;font-size:26px;line-height:1}
+#mSm .v,#mCo .v{margin-left:auto;color:var(--m);font-size:15px}
+#mSm.go::after,#mCo.go::after{margin-left:0!important}
+#bSk::after{content:"";margin-left:auto;width:48px;height:28px;border-radius:14px;background:radial-gradient(circle at 14px 50%,#cbd5e1 11px,transparent 12px),#3b475c}
+#bSk.on::after{background:radial-gradient(circle at 34px 50%,#f1f5f9 11px,transparent 12px),#5aa83a}
+.mr .fz{margin-left:auto;display:flex;gap:10px}
+.mr .fz .b{min-width:64px;padding:8px 0;font-size:16px;border-radius:10px;background:#2a3a58;box-shadow:none;border:1px solid #3a4d78}
+.mr .fz .b:active{transform:none;box-shadow:none;background:#3a4d78}
+#ms .m .ck{margin-left:auto;color:#38bdf8;font-size:22px;visibility:hidden}
+#ms .m.sel2 .ck{visibility:visible}
+.cr{flex-direction:column;align-items:flex-start!important;gap:10px!important}.cr::before{display:none!important}.sw{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.sw i{width:32px;height:32px;border-radius:50%;border:2px solid #3a4d78;display:block;font-style:normal}.sw i.df{width:auto;border-radius:16px;padding:0 12px;line-height:28px;font-size:14px;color:var(--m)}.sw i.on{border-color:#fff;box-shadow:0 0 0 2px #38bdf8}
+.mt{padding:14px 18px;color:var(--m);font-size:14px;line-height:1.5}
+@media (orientation:landscape) and (max-height:520px){#mp .m,.mr{min-height:48px;padding-top:8px;padding-bottom:8px}}
+/* ===== 跟读 / 视频存储 ===== */
+#bMc,#mGm{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='3' width='6' height='11' rx='3'/%3E%3Cpath d='M5 11a7 7 0 0014 0M12 18v3M9 21h6'/%3E%3C/svg%3E")}
+#mVs{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='6' rx='7' ry='3'/%3E%3Cpath d='M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3'/%3E%3C/svg%3E")}
+#mVs .v,#mGm .v{margin-left:auto;color:var(--m);font-size:15px}
+#mVs.go::after,#mGm.go::after{margin-left:0!important}
+#mv,#mg2{position:fixed;inset:0;z-index:66;background:#0f1626;display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.vr{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 16px;border:0;border-bottom:1px solid #243049;border-radius:0;background:none;box-shadow:none;color:var(--t);font-size:17px;font-weight:400;text-align:left}
+#mv .b.vr:active,#mg2 .b.vr:active{transform:none;box-shadow:none;background:#202c45}
+.vr .v{margin-left:auto;color:var(--m);font-size:15px}
+.vr .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px}
+.vr small{color:var(--m);font-size:13px}
+.vr .b{min-width:64px;padding:8px 12px;font-size:15px;border-radius:10px;background:#2a3a58;box-shadow:none;border:1px solid #3a4d78;color:var(--t)}
+.vr .b:active{transform:none;box-shadow:none;background:#3a4d78}
+.vr .b.dg{background:#c0392b;border-color:#e57368;color:#fff}
+#mv .gl>:last-child,#mg2 .gl>:last-child{border-bottom:0}
+#mg2 input{background:#0f172a;color:var(--t);border:1px solid #334155;border-radius:8px;padding:10px;font-size:16px;width:100%}
+.mw{display:inline-block}
+.mw.ok{color:#5ee08a}.mw.nr{color:#ffd166}.mw.ms{color:#ff7b7b;text-decoration:underline}
+/* 当前句高亮调暗，其余句子变暗 */
+.c{transition:background .3s}
+.c .en,.c .cn,.c small{transition:opacity .3s,color .3s}
+.c.cur{background:#0f1a2e}
+.c:not(.cur):not(.sel) .en{opacity:.5}
+.c:not(.cur):not(.sel) .cn{opacity:.55}
+.c:not(.cur):not(.sel) small{opacity:.6}
+.c.cur small{opacity:.6}
+.c.cur .cn{color:var(--ccur,#9aa4b2)}
+/* 跟读窗口：淡入，背景不压太暗 */
+#rcp{background:rgba(0,0,0,.2);animation:rcBg .18s ease-out}
+#rcp .sh{animation:rcIn .18s ease-out}
+@keyframes rcBg{from{background:rgba(0,0,0,0)}to{background:rgba(0,0,0,.2)}}
+@keyframes rcIn{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.mcAct{display:flex;flex-direction:column}
+@media (orientation:landscape) and (max-height:520px){
+#rcp{background:none!important;animation:none}
+#rcp .sh{background:none;box-shadow:none;width:0;height:0;max-height:none;overflow:visible;padding:0;margin:0;animation:none}
+#rcp .sh h2,#rcp .cn{display:none}
+#mcBub{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);max-width:78vw;text-align:center;padding:10px 22px;border-radius:24px;background:rgba(8,14,28,.42);border:1px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s;text-shadow:0 0 3px #000,0 0 3px #000;z-index:5}
+#mcBub.on{opacity:1;pointer-events:auto}
+#mcT{font-size:19px!important;margin:0!important;line-height:1.35!important}
+#mcSay{min-height:0!important;font-size:13px!important}
+#mcSc{min-height:0!important}
+#mcSc>div:first-child>span{font-size:30px!important}
+.mcAct{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);flex-direction:row;align-items:center;gap:8px;z-index:5;white-space:nowrap}
+.mcAct .row{display:contents}
+#rcp .mcAct .b{min-width:0!important;margin:0!important;padding:7px 14px!important;font-size:13px!important;font-weight:500;border-radius:999px;color:#fff!important;background:rgba(8,14,28,.38)!important;border:1px solid rgba(255,255,255,.28)!important;box-shadow:none!important;transform:none!important;text-shadow:0 0 3px #000;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#rcp .mcAct .b:active{opacity:.55}
+#rcp .mcAct #mcRec{font-size:14px!important;padding:7px 16px!important;font-weight:600}
+#rcp .mcAct #mcRec.on{border-color:rgba(102,211,255,.8)!important;color:#aee6ff!important}
+#rcp .mcAct #mcRec.pz{border-color:rgba(255,209,102,.9)!important;color:#ffd166!important}
+}
+</style></head><body>
+<div id="vw"><video id="v" playsinline></video><div id="mk"></div><div id="ov"></div></div>
+<button class="b" id="lk"><svg viewBox="0 0 24 24"><path d="M12 20.5s-8-5-8-10.6a4.5 4.5 0 018-2.8 4.5 4.5 0 018 2.8c0 5.6-8 10.6-8 10.6z"/></svg></button><button class="b" id="fs"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button><button class="b" id="fit"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+<div id="tb"><button class="b" id="bBk">←</button><span id="ttl" style="font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span></div>
+<div id="bar">
+<button class="b on" id="bAu">自动滚动</button><button class="b" id="bRp">逐句复读</button>
+<button class="b" id="bAB">AB复读</button><button class="b" id="bDp">打点</button><button class="b" id="bSp">1x</button><button class="b" id="bMc">跟读</button><button class="b" id="bMk">遮挡板</button>
+<button class="b" id="bEp">集数</button><button class="b" id="bCa">校准</button><button class="b" id="bM5">字幕−0.5s</button><button class="b" id="bP5">字幕+0.5s</button><button class="b" id="bFv">选句收藏</button><button class="b" id="bMo">更多</button><button class="b" id="bSt">设置</button></div>
+<div id="mp"><div class="mh"><button class="b" id="mBk">←</button><span>更多</span></div><div class="ml">
+<div class="gl"><button class="b m go" id="mSm"><span>字幕显示</span><span class="v" id="mSmV">英中</span></button>
+<div class="mr" id="mFz"><span>字幕字号</span><span class="fz"><button class="b" id="bFm">A−</button><button class="b" id="bFp">A+</button></span></div>
+<button class="b m go" id="mCo"><span>字幕颜色</span><span class="v" id="mCoV">默认</span></button>
+<button class="b m" id="bSk">跳过空白</button></div>
+<div class="mg"></div>
+<div class="gl"><button class="b m go" data-c="1" id="bVb">生词本</button><button class="b m go" data-c="1" id="bFl">收藏夹</button><button class="b m go" data-c="1" id="bEx">导出</button><button class="b m go" data-c="1" id="bEd">编辑字幕</button><button class="b m go" data-c="1" id="bSb">导出字幕</button><button class="b m go" data-c="1" id="bAj">画面调整</button><button class="b m go" id="mVs"><span>视频存储</span><span class="v" id="mVsV"></span></button><button class="b m go" id="mGm"><span>跟读设置</span><span class="v" id="mGmV"></span></button></div>
+<div class="mt">字幕显示：点进去选“英中 / 仅英 / 仅中 / 无”，当前项打勾。</div></div></div>
+<div id="mc"><div class="mh"><button class="b" id="mcBk">←</button><span>字幕颜色</span></div><div class="ml"><div class="gl"><div class="mr cr" id="rE"><span>英文字幕颜色</span><span class="sw" id="swE"></span></div><div class="mr cr" id="rC"><span>中文字幕颜色</span><span class="sw" id="swC"></span></div></div><div class="mt">选一个颜色，视频画面和下面的句子列表一起变。</div></div></div>
+<div id="mv"><div class="mh"><button class="b" id="mvBk">←</button><span>视频存储</span></div><div class="ml">
+<div class="gl"><div class="vr"><span>视频已占用</span><span class="v" id="mvU">0</span></div><div class="vr"><span>浏览器还能存</span><span class="v" id="mvF">-</span></div><button class="b vr" id="mvP"><span>申请永久保存</span><span class="v" id="mvPv">-</span></button></div>
+<div class="mt">建议存 1 部电影，或 5 集电视剧。空间不够时，删掉不看的视频。字幕、生词本、收藏不会被删。</div>
+<div class="mg"></div><div class="gl" id="mvL"></div></div></div>
+<div id="mg2"><div class="mh"><button class="b" id="mgBk">←</button><span>跟读设置</span></div><div class="ml">
+<div class="gl"><button class="b vr" id="mgE"><span>评分方式</span><span class="v" id="mgEv">Chrome（免费）</span></button>
+<div class="vr" style="flex-direction:column;align-items:stretch;gap:8px"><span>Gemini 密钥</span><input type="password" id="mgK" placeholder="粘贴密钥（AIza 开头）" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+<div class="vr" style="flex-direction:column;align-items:stretch;gap:8px"><span>模型名</span><input type="text" id="mgM" placeholder="gemini-flash-lite-latest" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+<div class="vr" style="gap:10px"><button class="b" id="mgS" style="flex:1">保存</button><button class="b" id="mgT" style="flex:1">测试</button></div></div>
+<div class="mt">评分方式：Chrome 免费、比较粗；Gemini 更细，会标出每个词并给一句中文提示，但分数是 AI 凭听感判断的，仅供参考。密钥只存在这个浏览器里，不会写进网页文件。Gemini 有免费次数限制，用完会自动改用 Chrome 评分，第二天恢复。</div></div></div>
+<div id="ms"><div class="mh"><button class="b" id="msBk">←</button><span>字幕显示</span></div><div class="ml"><div class="gl" id="msL"></div>
+<div class="mt">选一项，字幕就按这一项显示。</div></div></div>
+<div id="ls"></div>
+<div id="fvb"><span id="fvt"></span><button class="b on" id="fvOk">确认收藏</button><button class="b" id="fvCl">清除选择</button><button class="b" id="fvEx">退出选句</button></div>
+<div id="fp" style="display:none;position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(560px,92vw);background:rgba(15,23,42,.92);border-radius:16px;padding:12px 16px;z-index:80;box-shadow:0 4px 20px rgba(0,0,0,.6)">
+<div class="row" style="margin:4px 0"><span style="width:64px">放大</span><input type="range" id="fz1" min="100" max="130" step="1" style="flex:1"><span id="fz1v" style="width:48px;text-align:right">100%</span></div>
+<div class="row" style="margin:4px 0"><span style="width:64px">上下位置</span><input type="range" id="fy1" min="-15" max="15" step="1" style="flex:1"><span id="fy1v" style="width:48px;text-align:right">0</span></div>
+<div class="row" style="margin:6px 0 0"><button class="b" id="fRs" style="flex:1">恢复默认</button><button class="b on" id="fOk" style="flex:1">完成</button></div></div>
+<div id="ct"><div class="r"><span id="t1">0:00</span><input type="range" id="sk" min="0" max="1" step="0.1" value="0"><span id="t2">0:00</span></div>
+<div id="pl"><button class="b" id="bPv">上一句</button><button class="b on" id="bPl">播放</button><button class="b" id="bNx">下一句</button></div></div>
+<div class="pop" id="sp" style="display:flex;align-items:center;justify-content:center"><div class="sh" style="border-radius:20px;max-width:340px;text-align:center"><h2 style="font-size:30px">🎬 电影模式</h2><p style="color:var(--m)">点“开始”，打开音效和发音</p><button class="b on" id="go0" style="font-size:18px;padding:12px 40px">开始</button></div></div><div class="pop" id="ep"></div><div class="pop" id="wc"></div><div class="pop" id="vb"></div><div class="pop" id="fv"></div><div class="pop" id="ex"></div><div class="pop" id="ed"></div><div class="pop" id="rcp"></div>
+<div class="pop" id="st"><div class="sh"><h2>设置</h2>
+<div class="row"><button class="b on" id="pV">从文件选视频（可多选）</button><button class="b on" id="pV2">从相册选视频</button><button class="b on" id="pS">选择字幕（可多选）</button><button class="b" id="pX">提取内嵌字幕</button><button class="b" id="pD">导入词典</button><button class="b on" id="pM">按键声音:开</button></div>
+<div id="inf" style="color:var(--m);font-size:14px">还没选视频、字幕</div>
+<div class="row">复读次数（0=无限）<input type="number" id="nC" min="0" max="99">停顿<input type="number" id="nP" min="0" step="0.5"><select id="sP"><option value="s">秒</option><option value="r">倍句长</option></select></div>
+<div class="row"><button class="b" id="bOy" style="width:100%;font-size:16px">字幕位置重置（按住字幕上下拖可调）</button></div>
+<div class="row"><button class="b on" onclick="cl('st')" style="width:100%;font-size:17px">完成</button></div></div></div>
+<input type="file" id="fV" multiple hidden><input type="file" id="fV2" accept="video/*" multiple hidden><input type="file" id="fS" multiple hidden><input type="file" id="fD" accept=".json,.csv,.txt" hidden>
+<div id="tt"></div><div id="dim"></div><div id="hud"></div><div id="bub"></div>
+<script>
+const $=id=>document.getElementById(id),v=$('v');
+const LS={g:(k,d)=>{try{const x=localStorage.getItem(k);return x==null?d:JSON.parse(x)}catch(e){return d}},s:(k,x)=>{try{localStorage.setItem(k,JSON.stringify(x))}catch(e){toast('存储空间不足')}}};
+let MW_DICT = {
+        "you":"ˈyü","are":"ˈär","is":"ˈiz","am":"ˈam","what's":"ˈ(h)wəts","i'm":"ˈīm","it's":"ˈits","don't":"ˈdōnt","let's":"ˈlets","you're":"ˈyu̇r","a":"ə","an":"ən","the":"thə","i":"ˈī","he":"ˈhē","she":"ˈshē","it":"ˈit","we":"ˈwē","they":"ˈt͟hā","me":"ˈmē","him":"ˈhim","her":"ˈhər","us":"ˈəs","them":"ˈt͟hem","my":"ˈmī","your":"ˈyȯr","his":"ˈhiz","its":"ˈits","our":"ˈau̇(-ə)r","their":"ˈt͟her","this":"ˈt͟his","that":"ˈt͟hat","these":"ˈt͟hēz","those":"ˈt͟hōz","was":"ˈwəz","were":"ˈwər","be":"ˈbē","do":"ˈdü","does":"ˈdəz","did":"ˈdid","have":"ˈhav","has":"ˈhaz","had":"ˈhad","can":"ˈkan","could":"ˈku̇d","will":"ˈwil","would":"ˈwu̇d","should":"ˈshu̇d","may":"ˈmā","might":"ˈmīt","must":"ˈməst","of":"ˈəv","in":"ˈin","on":"ˈȯn","at":"ˈat","to":"ˈtü","for":"ˈfȯr","with":"ˈwit͟h","about":"ə-ˈbau̇t","from":"ˈfrəm","by":"ˈbī","up":"ˈəp","down":"ˈdau̇n","out":"ˈau̇t","not":"ˈnät",
+        "good": "ˈgu̇d", "luck": "ˈlək", "morning": "ˈmȯr-niŋ", "how": "ˈhau", "fine": "ˈfīn", "thank": "ˈthaŋk", "goodbye": "ˌgu̇d-ˈbī", "sorry": "ˈsär-ē", "welcome": "ˈwel-kəm", "like": "ˈlīk", "love": "ˈləv", "nice": "ˈnīs", "day": "ˈdā", "today": "tə-ˈdā", "old": "ˈōld", "china": "ˈchī-nə", "speak": "ˈspēk", "english": "ˈiŋ-glish", "read": "ˈrēd", "quietly": "ˈkwī-ət-lē", "classroom": "ˈklas-ˌrüm", "every": "ˈev-rē", "where": "ˈ(h)wer", "live": "ˈliv", "here": "ˈhir", "busy": "ˈbi-zē", "now": "ˈnau", "free": "ˈfrē", "please": "ˈplēz", "sit": "ˈsit", "understand": "ˌən-dər-ˈstand", "help": "ˈhelp", "course": "ˈkȯrs", "learning": "ˈlər-niŋ", "what": "ˈ(h)wät", "time": "ˈtīm", "go": "ˈgō", "eat": "ˈēt"
+    };
+const dictData = {
+        "good": "adj. 好的；优秀的\nn. 好处；善行", "luck": "n. 运气；好运；幸运", "morning": "n. 早晨；上午", "how": "adv. 怎样；如何；多么", "are": "v. 是（be动词复数）", "you": "pron. 你；你们", "what's": "缩写：what is 或 what has", "your": "pron. 你的；你们的", "name": "n. 名字；名称\nv. 命名", "i'm": "缩写：I am", "fine": "adj. 好的；优良的\nn. 罚款", "thank": "v. 感谢\nn. 感谢", "goodbye": "int. 再见", "sorry": "adj. 抱歉的；难过的", "welcome": "v. 欢迎\nadj. 受欢迎的", "i": "pron. 我", "like": "v. 喜欢\nprep. 像", "love": "n. 爱；热爱\nv. 爱；喜欢", "it's": "缩写：it is 或 it has", "a": "art. 一（个）", "nice": "adj. 美好的；友好的", "day": "n. 一天；白天", "today": "n. 今天\nadv. 在今天"
+    };
+Object.assign(dictData,LS.g('customDictionary',{}));Object.assign(MW_DICT,LS.g('customMwDict',{}));
+    function splitBilingualLine(line) {
+        const re = /(?:\d+(?:[.,:]\d+)*\s+)*[A-Za-z][A-Za-z0-9'’.,:;!?\-()"%$\s]*/g;
+        let m, last = 0, engs = [], chnRaw = '';
+        while ((m = re.exec(line))) {
+            let run = m[0], end = m.index + run.length;
+            const nextCh = line[end];
+            if (nextCh && /[\u4e00-\u9fa5]/.test(nextCh)) {       // 紧贴中文的结尾数字（如 "gain 13点"）属于中文
+                const t = run.match(/\s+\d+(?:[.,:]\d+)*\s*$/);
+                if (t) { run = run.slice(0, run.length - t[0].length); end = m.index + run.length; re.lastIndex = end; }
+            }
+            engs.push(run); chnRaw += line.slice(last, m.index) + ' '; last = end;
+        }
+        chnRaw += line.slice(last);
+        const eng = engs.join(' ').replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').replace(/\s+/g, ' ').trim();
+        const chn = chnRaw.replace(/(?<!\d)[.,]|[.,](?!\d)|[!?;:'"\-\(\)]/g, ' ')
+                          .replace(/^[^\u4e00-\u9fa50-9]+|[^\u4e00-\u9fa50-9]+$/g, '')
+                          .replace(/\s+/g, ' ').trim();
+        return { eng, chn };
+    }
+
+    // 通用导入解析：纯英文行=一句英文；纯中文行=上一句的翻译；中英文混写的一行=一句；空行忽略
+    function vTs(tok) {
+        const p = String(tok).replace(',', '.').split(':').map(Number);
+        if (p.some(isNaN)) return NaN;
+        return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p.length === 2 ? p[0] * 60 + p[1] : p[0];
+    }
+    function vCueFromText(txt) {
+        txt = String(txt || '').replace(/\\N/g, '\n').replace(/\{[^}]*\}/g, '').replace(/<[^>]+>/g, '').replace(/\[[^\]]*\]/g, '').replace(/[♪♫]/g, '');
+        let eng = '', chn = '';
+        txt.split('\n').forEach(line => {
+            line = line.trim(); if (!line) return;
+            const q = splitBilingualLine(line);
+            if (q.eng) eng += (eng ? ' ' : '') + q.eng;
+            if (q.chn) chn += (chn ? ' ' : '') + q.chn;
+        });
+        eng = eng.replace(/^\s*-\s*/, '').replace(/\s+/g, ' ').trim(); chn = chn.replace(/^\s*-\s*/, '').replace(/\s+/g, ' ').trim();
+        if (!/[a-zA-Z]/.test(eng)) return null;
+        return { eng, chn };
+    }
+    function vParseText(text) {
+        text = String(text || '').replace(/^\uFEFF/, '').replace(/\r/g, '');
+        const cues = [];
+        const tre = /(\d+(?::\d+){1,2}(?:[.,]\d+)?)\s*(?:-->|->|—>|–>)\s*(\d+(?::\d+){1,2}(?:[.,]\d+)?)/;
+        let cur = null;
+        const push = () => { if (cur) { const c = vCueFromText(cur.lines.join('\n')); if (c) cues.push({ s: cur.s, e: cur.e, eng: c.eng, chn: c.chn }); } cur = null; };
+        const lines = text.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            const ln = lines[i], m = ln.match(tre);
+            if (m) {
+                push();
+                const rest = ln.slice(ln.indexOf(m[0]) + m[0].length).replace(/^[\]\s]+/, '').replace(/\(\s*\d+:\d+:\d+[.,]\d+\s*\)/g, '').trim();
+                cur = { s: vTs(m[1]), e: vTs(m[2]), lines: rest ? [rest] : [] };
+            } else if (cur) {
+                if (!ln.trim()) { push(); continue; }
+                if (/^\d+$/.test(ln.trim())) { let j = i + 1; while (j < lines.length && !lines[j].trim()) j++; if (j < lines.length && tre.test(lines[j])) { push(); continue; } }
+                if (/^WEBVTT|^NOTE\b/.test(ln)) continue;
+                cur.lines.push(ln);
+            }
+        }
+        push();
+        return cues;
+    }
+    function vParseJson(text) {
+        let data; try { data = JSON.parse(text); } catch (e) { return []; }
+        let arr = Array.isArray(data) ? data : null;
+        if (!arr && data && typeof data === 'object') { for (const k in data) if (Array.isArray(data[k]) && data[k].length && typeof data[k][0] === 'object') { arr = data[k]; break; } }
+        if (!arr) return [];
+        const pick = (o, names) => { for (const n of names) if (o[n] != null && o[n] !== '' && !isNaN(+o[n])) return +o[n]; return NaN; };
+        const out = [];
+        arr.forEach(o => {
+            if (!o || typeof o !== 'object') return;
+            let s = pick(o, ['start', 'startTime', 'begin', 'from', 's']), e = pick(o, ['end', 'endTime', 'to', 'e']);
+            if (isNaN(s)) return;
+            if (s > 100000 || (e > 100000)) { s /= 1000; if (!isNaN(e)) e /= 1000; }
+            const txt = Object.keys(o).filter(k => typeof o[k] === 'string' && isNaN(+o[k])).map(k => o[k]).join('\n');
+            const c = vCueFromText(txt); if (c) out.push({ s, e, eng: c.eng, chn: c.chn });
+        });
+        return out;
+    }
+    function vParseAss(text) {
+        text = String(text || '').replace(/^\uFEFF/, '').replace(/\r/g, '');
+        if (!/^\s*\[Script Info\]|^\s*\[Events\]|^Dialogue:/m.test(text)) return [];
+        let iS = 1, iE = 2, iT = 9, nF = 10, inEv = false;
+        const groups = new Map();
+        text.split('\n').forEach(ln => {
+            const t = ln.trim();
+            if (/^\[.*\]$/.test(t)) { inEv = /^\[Events\]$/i.test(t); return; }
+            if (/^Format:/i.test(t) && inEv) {
+                const f = t.slice(7).split(',').map(x => x.trim().toLowerCase());
+                nF = f.length; iS = f.indexOf('start'); iE = f.indexOf('end'); iT = f.indexOf('text');
+                if (iS < 0 || iE < 0 || iT < 0) { iS = 1; iE = 2; iT = 9; nF = 10; }
+                return;
+            }
+            if (!/^Dialogue:/i.test(t)) return;
+            const parts = t.slice(9).split(',');
+            if (parts.length < nF) return;
+            const txt = parts.slice(iT).join(',');
+            if (/\{[^}]*\\p[1-9][^}]*\}/.test(txt)) return;
+            const s = vTs(parts[iS].trim()), e = vTs(parts[iE].trim());
+            if (isNaN(s)) return;
+            const key = s.toFixed(2) + '_' + (isNaN(e) ? '' : e.toFixed(2));
+            if (!groups.has(key)) groups.set(key, { s, e, lines: [] });
+            groups.get(key).lines.push(txt);
+        });
+        const out = [];
+        groups.forEach(g => {
+            const c = vCueFromText(g.lines.join('\n'));
+            if (c) out.push({ s: g.s, e: g.e, eng: c.eng, chn: c.chn });
+        });
+        return out;
+    }
+    function vParse(text) {
+        let cues = vParseText(text);
+        if (!cues.length) cues = vParseAss(text);
+        if (!cues.length && /^\s*[\[{]/.test(text)) cues = vParseJson(text);
+        cues = cues.filter(c => !isNaN(c.s));
+        cues.sort((a, b) => a.s - b.s);
+        cues.forEach((c, i) => { if (isNaN(c.e) || c.e <= c.s) c.e = cues[i + 1] ? cues[i + 1].s : c.s + 3; });
+        return cues;
+    }
+
+
+const codeOf=n=>((String(n).match(/S\d+E\d+/i)||[])[0]||String(n).replace(/\.[^.]+$/,'')).toUpperCase();
+let loopCue=null,loopGap=LS.g('mv_lg',.5);let cues=[],cur=-1,lock=null,left=0,busy=false,ovk='',rep=LS.g('mv_rep',false),cnt=LS.g('mv_cnt',3),pm=LS.g('mv_pm','s'),pv=LS.g('mv_pv',1),sm=LS.g('mv_sm',0),sp=1,auto=true,skip=false,ab={a:0,b:0,st:0},cw={},curEp=LS.g('mv_cur',''),vids={},cal={a:1,b:0,p:[]},calM=false,vf=null,wl=null,lastSave=0,hc=0,locked=false;
+let mcOpen=false;const SPS=[.5,.75,1,1.25,1.5,2],SMN=['英中','仅英','仅中','无'];
+const fmt=t=>{t=Math.max(0,t||0);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=Math.floor(t%60);return(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(s).padStart(2,'0')};
+const esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
+function toast(m,ms){const t=$('tt');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',ms||2200)}
+function op(id){$(id).style.display='flex'}function cl(id){$(id).style.display='none'}
+document.querySelectorAll('.pop:not(#sp)').forEach(p=>p.onclick=e=>{if(e.target===p)cl(p.id)});
+let AC=null,snd=LS.g('mv_snd',true);
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state=='suspended')AC.resume();return AC}
+function beep(f,d,vol){if(!snd)return;const a=ac();if(!a)return;const o=a.createOscillator(),g=a.createGain(),n=a.currentTime;o.type='triangle';o.frequency.setValueAtTime(f,n);o.frequency.exponentialRampToValueAtTime(f*.6,n+d);g.gain.setValueAtTime(vol||.14,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(a.destination);o.start(n);o.stop(n+d)}
+function chime(){beep(988,.12);setTimeout(()=>beep(1318,.16),100)}
+document.addEventListener('click',e=>{const b=e.target.closest('.b');if(!b||['go0','bPv','bNx','mcRec'].includes(b.id))return;if(['bAu','bSk','bRp','bMk','bCa','bDp','lk'].includes(b.id))beep(b.classList.contains('on')?900:420,.1);else beep(660,.07)});
+function btns(){$('ttl').textContent=(curEp?((vids[curEp]&&vids[curEp].name)||LS.g('mv_ep_'+curEp,{}).n||curEp):'电影模式');$('pM').textContent='按键声音:'+(snd?'开':'关');$('pM').classList.toggle('on',snd);$('mSmV').textContent=SMN[sm];[0,1,2,3].forEach(k=>document.body.classList.toggle('s'+k,k==sm));$('bRp').classList.toggle('on',rep);$('bRp').textContent=rep?(cnt?'复读×'+cnt:'复读∞'):'逐句复读';
+$('bAu').classList.toggle('on',auto);$('bSk').classList.toggle('on',skip);$('bAB').classList.toggle('on',ab.st>0);$('bAB').textContent=['AB复读','A已设','A-B循环'][ab.st];$('bSp').textContent=sp+'x';
+$('nC').value=cnt;$('nP').value=pv;$('sP').value=pm;$('inf').textContent=(v.src?'视频已选':'还没选视频')+'；字幕 '+cues.length+' 句'}
+function render(){$('ls').innerHTML=cues.length?cues.map((c,i)=>c.seg?`<div class="c" id="c${i}" data-i="${i}"><small>${i+1}</small><div class="en">${esc(c.eng)} · ${fmt(c.s)}–${fmt(c.e)}</div><div class="row" style="margin:6px 0 0"><button class="b" data-sg="${i}:s-">起点−0.5</button><button class="b" data-sg="${i}:s+">起点+0.5</button><button class="b" data-sg="${i}:e-">终点−0.5</button><button class="b" data-sg="${i}:e+">终点+0.5</button><button class="b" data-sg="${i}:del">删除</button></div><div class="row" style="margin:6px 0 0;justify-content:flex-end"><button class="b gp" data-sg="${i}:gap">间隔 ${loopGap}秒</button><button class="b ${loopCue===c?'on':''}" data-sg="${i}:loop">${loopCue===c?'循环中':'循环播放'}</button></div></div>`:`<div class="c" id="c${i}" data-i="${i}"><small>${i+1} · ${fmt(c.s)}</small><div class="en">${wsp(c.eng)}</div><div class="cn">${esc(c.chn||'')}</div></div>`).join(''):'<p style="padding:20px;color:var(--m)">点底部栏“设置”，先选视频和字幕。视频里自带字幕、没有字幕文件的，播放时点“打点”分段也能复读</p>';cur=-1;btns()}
+const idxAt=t=>{let r=-1;for(let i=0;i<cues.length;i++){if(cues[i].s<=t)r=i;else break}return r};
+function go(i){if(i<0||i>=cues.length)return;if(!v.src)return toast('先在设置里选视频');v.currentTime=cues[i].s;lock=i;left=LP();v.play()}
+$('ls').onclick=e=>{const sg=e.target.closest('[data-sg]');if(sg){const[i,o]=sg.dataset.sg.split(':');segLp(+i,o);return}const c0=e.target.closest('.c');if(edMode){if(c0&&cues[+c0.dataset.i]&&!cues[+c0.dataset.i].seg)edOpen(+c0.dataset.i);return}if(selMode){if(c0&&cues[+c0.dataset.i]&&!cues[+c0.dataset.i].seg)selTap(+c0.dataset.i);return}if(mcMode){if(c0&&cues[+c0.dataset.i]&&!cues[+c0.dataset.i].seg)mcOpenSheet(+c0.dataset.i);return}const w=e.target.closest('.w');if(w){card(w.textContent,cues[+w.closest('.c').dataset.i]);return}const c=e.target.closest('.c');if(c){if(calM)calAt(+c.dataset.i);else go(+c.dataset.i)}};
+const wsp=s=>esc(s).replace(/[A-Za-z]+(?:['’][A-Za-z]+)*/g,m=>`<span class="w">${m}</span>`);
+function ov(i){const k=i+'_'+sm;if(k===ovk)return;ovk=k;$('ov').innerHTML=(i<0||cues[i].seg)?'':`<b>${wsp(cues[i].eng)}</b><i>${esc(cues[i].chn||'')}</i>`}
+$('ov').onclick=e=>{if(odMoved)return;if(mcMode){if(cur>=0&&cues[cur]&&!cues[cur].seg)mcOpenSheet(cur);return}const w=e.target.closest('.w');if(w&&cur>=0)card(w.textContent,cues[cur])};
+const at=t=>{let lo=0,hi=cues.length-1,r=-1;while(lo<=hi){const m=(lo+hi)>>1;if(cues[m].s<=t){r=m;lo=m+1}else hi=m-1}return r>=0&&t<cues[r].e?r:-1};
+setInterval(()=>{const t=dragging?+$('sk').value:v.currentTime,d=v.duration||0;$('t1').textContent=fmt(t);$('t2').textContent=fmt(d);if(d){$('sk').max=d;if(!dragging)$('sk').value=t}
+if(curEp&&!v.paused&&t>0&&Date.now()-lastSave>5000){lastSave=Date.now();try{localStorage.setItem('mv_pos_'+curEp,JSON.stringify(t))}catch(e){}}
+if(ab.st==2&&t>=ab.b&&!v.paused&&!dragging&&!busy){if(ab.n>0){ab.n--;busy=true;v.pause();setTimeout(()=>{busy=false;v.currentTime=ab.a;v.play()},(pm=='s'?pv:pv*(ab.b-ab.a))*1000)}else{ab.st=0;btns();toast('AB复读完成')}return}
+if(loopCue&&!v.paused&&!busy&&!dragging&&t>=loopCue.e-.05&&t<loopCue.e+.6){const c=loopCue;busy=true;v.pause();setTimeout(()=>{busy=false;if(loopCue===c){v.currentTime=c.s;v.play()}},loopGap*1000);return}
+if(!cues.length)return;const i=at(t);
+if(i<0&&skip&&!v.paused&&!dragging){const n=idxAt(t)+1;if(n<cues.length&&cues[n].s-t>.8){v.currentTime=cues[n].s-.1;return}}
+if(i!==cur){if(cur>=0)$('c'+cur)?.classList.remove('cur');cur=i;if(i>=0){const e=$('c'+i);if(e){e.classList.add('cur');if(auto&&!asPaused())e.scrollIntoView({block:'center',behavior:dragging?'auto':'smooth'})}if(rep&&!loopCue&&!busy&&!mcOpen&&lock!==i){lock=i;left=LP()}}}
+ov(i);
+if(rep&&!loopCue&&lock!==null&&!v.paused&&!busy&&!dragging){const c=cues[lock];if(t>=c.e-.05){if(t>c.e+.6)lock=null;else if(left>0){left--;busy=true;v.pause();setTimeout(()=>{busy=false;v.currentTime=c.s;v.play()},(pm=='s'?pv:pv*(c.e-c.s))*1000)}else lock=null}}},80);
+let dragging=false,fit=LS.g('mv_fit2',0),fz=LS.g('mv_fz',1.2),vol=LS.g('mv_vol',1),bri=LS.g('mv_bri',1),tapT=0,lt=0,g=null;
+const sk=$('sk');sk.addEventListener('pointerdown',()=>dragging=true);['pointerup','pointercancel','touchend','change'].forEach(ev=>sk.addEventListener(ev,()=>setTimeout(endDrag,80)));
+let dt=0;const endDrag=()=>{if(!dragging)return;dragging=false;$('bub').style.display='none';lock=rep&&cur>=0?cur:null;left=LP()};
+sk.oninput=e=>{const x=+e.target.value;dragging=true;clearTimeout(dt);dt=setTimeout(endDrag,1500);v.currentTime=x;$('t1').textContent=fmt(x);const i=at(x);$('bub').textContent=fmt(x)+(i>=0?' · '+cues[i].eng:'');$('bub').style.display='block'};
+async function wlock(on){try{if(on&&navigator.wakeLock&&!wl)wl=await navigator.wakeLock.request('screen');else if(!on&&wl){wl.release();wl=null}}catch(e){wl=null}}
+document.addEventListener('visibilitychange',()=>{wl=null;if(!document.hidden&&!v.paused)wlock(true)});
+const land=()=>matchMedia('(orientation:landscape) and (max-height:520px)').matches;
+const showCtl=()=>document.body.classList.toggle('cs');
+
+v.onplay=()=>{$('bPl').textContent='暂停';wlock(true)};v.onpause=()=>{if(!busy){$('bPl').textContent='播放';wlock(false)}};v.onclick=()=>{const tg=()=>v.paused?v.play():v.pause();if(!land()){tg();return}const n=Date.now();if(n-lt<300){lt=0;clearTimeout(tapT);tg();return}lt=n;tapT=setTimeout(showCtl,300)};
+$('bPl').onclick=()=>{if(!v.src)return toast('先在设置里选视频');v.paused?v.play():v.pause()};
+$('bPv').onclick=()=>go(Math.max(0,(cur>=0?cur:idxAt(v.currentTime))-1));$('bNx').onclick=()=>go((cur>=0?cur:idxAt(v.currentTime))+1);
+$('bAu').onclick=()=>{auto=!auto;usrHold=false;usrUntil=0;btns()};$('bSk').onclick=()=>{skip=!skip;btns()};
+$('bRp').onclick=()=>{rep=!rep;LS.s('mv_rep',rep);lock=rep&&cur>=0?cur:null;left=LP();btns()};
+$('bAB').onclick=()=>{const t=v.currentTime;if(ab.st==0){ab.a=t;ab.st=1}else if(ab.st==1){if(t<=ab.a+.3)return toast('B点要在A点后面');ab.b=t;ab.st=2;ab.n=LP()}else ab.st=0;btns()};
+$('bSp').onclick=()=>{sp=SPS[(SPS.indexOf(sp)+1)%SPS.length];v.playbackRate=sp;btns()};v.onloadedmetadata=()=>{v.playbackRate=sp;const p=LS.g('mv_pos_'+curEp,0);if(p>3&&v.duration&&p<v.duration-5)v.currentTime=p;btns()};
+$('bMk').onclick=()=>{const m=$('mk');m.style.display=m.style.display=='block'?'none':'block';$('bMk').classList.toggle('on',m.style.display=='block')};
+$('mk').ontouchmove=e=>{const r=$('vw').getBoundingClientRect();$('mk').style.height=Math.min(Math.max(r.bottom-e.touches[0].clientY,16),r.height*.7)+'px'};
+{const O=()=>land()?'L':'P',sh=()=>{$('fz1').value=Math.round(curS*100);$('fz1v').textContent=$('fz1').value+'%';const y=+LS.g('mv_ty'+O(),0);$('fy1').value=y;$('fy1v').textContent=y};
+$('bAj').onclick=()=>{btns();document.body.classList.remove('cs');setFit();sh();$('fp').style.display='block'};
+$('fOk').onclick=()=>{$('fp').style.display='none'};
+$('fz1').oninput=()=>{LS.s('mv_z'+O(),$('fz1').value/100);setFit();$('fz1v').textContent=$('fz1').value+'%'};
+$('fy1').oninput=()=>{LS.s('mv_ty'+O(),+$('fy1').value);setFit();$('fy1v').textContent=$('fy1').value};
+$('fRs').onclick=()=>{LS.s('mv_z'+O(),0);LS.s('mv_ty'+O(),0);setFit();sh()}}
+$('bOy').onclick=()=>{LS.s('mv_oyP',.015);LS.s('mv_oyL',.1);setOv();toast('字幕位置已重置')};$('bSt').onclick=()=>{btns();op('st')};
+$('go0').onclick=()=>{ac();try{speechSynthesis.speak(new SpeechSynthesisUtterance(''))}catch(e){}cl('sp');chime()};
+$('pM').onclick=()=>{snd=!snd;LS.s('mv_snd',snd);btns();beep(660,.07)};
+$('pV').onclick=()=>$('fV').click();$('pV2').onclick=()=>$('fV2').click();$('pS').onclick=()=>$('fS').click();$('pD').onclick=()=>$('fD').click();
+$('nC').onchange=e=>{cnt=Math.max(0,Math.floor(+e.target.value));if(isNaN(cnt))cnt=3;LS.s('mv_cnt',cnt);btns()};$('nP').onchange=e=>{pv=Math.max(0,+e.target.value||0);LS.s('mv_pv',pv)};$('sP').onchange=e=>{pm=e.target.value;LS.s('mv_pm',pm)};
+$('fD').onchange=async e=>{const f=e.target.files[0];if(!f)return;const t=await f.text();let o={};try{o=JSON.parse(t)}catch(x){t.split(/\r?\n/).forEach(l=>{const m=l.match(/^\s*"?([A-Za-z'’-]+)"?\s*[,\t]\s*(.+)$/);if(m)o[m[1].toLowerCase()]=m[2].replace(/^"|"$/g,'')})}
+const n=Object.keys(o).length;if(!n)return toast('词典里没有可用的词条');Object.assign(dictData,o);LS.s('customDictionary',Object.assign(LS.g('customDictionary',{}),o));toast('已导入 '+n+' 个词')};
+function look(w){const k=w.toLowerCase().replace(/’/g,"'");for(const x of [k,k.replace(/'s$/,''),k.replace(/ies$/,'y'),k.replace(/(ing|ed|es|s)$/,'')])if(dictData[x]||MW_DICT[x])return{m:dictData[x]||'',p:MW_DICT[x]||''};return{m:'',p:''}}
+function tts(w){try{const u=new SpeechSynthesisUtterance(w);u.lang='en-US';speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function say(w){const a=new Audio('https://dict.youdao.com/dictvoice?audio='+encodeURIComponent(w)+'&type=2');a.onerror=()=>tts(w);a.play().catch(()=>tts(w))}
+const VK='savedVocabWords_v1',rd=()=>{const l=LS.g(VK,[]);return Array.isArray(l)?l:[]};
+function card(w,c){v.pause();const r=look(w);cw={word:w.toLowerCase(),ctx:c.eng,cn:c.chn||''};
+$('wc').innerHTML=`<div class="sh"><h2>${esc(w)} <button class="b" id="sp1">🔊</button></h2><div style="color:var(--m)">${r.p?'/'+esc(r.p)+'/':''}</div><p style="white-space:pre-line">${r.m?esc(r.m):'本地词典里没有这个词'}</p><a style="color:var(--a)" target="_blank" href="https://dict.youdao.com/result?word=${encodeURIComponent(w)}&lang=en">去有道查词</a><div class="row"><button class="b on" id="ad1">加入生词本</button><button class="b" onclick="cl('wc')">关闭</button></div></div>`;
+$('sp1').onclick=()=>say(w);$('ad1').onclick=()=>{const l=rd();if(l.some(x=>x.word===cw.word))return toast('已经在生词本里');l.unshift({word:cw.word,addedAt:Date.now(),ctx:cw.ctx,cn:cw.cn});LS.s(VK,l);toast('已加入生词本')};op('wc')}
+function vbook(){const l=rd();$('vb').innerHTML=`<div class="sh"><h2>生词本（${l.length}）</h2><div class="row"><button class="b" onclick="cl('vb')">关闭</button></div>`+(l.map((x,i)=>{const r=look(x.word);return`<div class="vi"><b>${esc(x.word)}</b> ${r.p?'/'+esc(r.p)+'/':''} <button class="b" data-s="${esc(x.word)}">🔊</button> <button class="b" data-d="${i}">删除</button><small style="white-space:pre-line">${esc(r.m)}</small><small>${esc(x.ctx||'')}</small></div>`}).join('')||'<p style="color:var(--m)">还是空的。点字幕里的单词，再点“加入生词本”。</p>')+'</div>';
+$('vb').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>say(b.dataset.s));$('vb').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const l=rd();l.splice(+b.dataset.d,1);LS.s(VK,l);vbook()});op('vb')}
+function exp(){const l=rd();if(!l.length)return toast('生词本是空的');const q=s=>'"'+String(s||'').replace(/"/g,'""')+'"';
+const rows=[['单词','音标','中文释义','例句','例句翻译']].concat(l.map(x=>{const r=look(x.word);return[x.word,r.p,r.m.replace(/\n/g,'；'),x.ctx,x.cn]}));
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download='生词本.csv';document.body.appendChild(a);a.click();a.remove();toast('已导出：生词本.csv')}
+$('bVb').onclick=vbook;
+
+const eps=()=>LS.g('mv_eps',[]);
+function ensureEp(code,name){const l=eps();if(!l.includes(code)){l.push(code);LS.s('mv_eps',l)}let r=LS.g('mv_ep_'+code,null);if(!r){r={n:name||code,c:[],cal:{a:1,b:0,p:[]}};LS.s('mv_ep_'+code,r)}return r}
+const applyCal=()=>cues.forEach(c=>{c.s=c.s0*cal.a+cal.b;c.e=c.e0*cal.a+cal.b});
+function persist(){if(!curEp)return;const r=ensureEp(curEp);r.c=cues.map(c=>[c.s0,c.e0,c.eng,c.chn,c.seg?1:0]);r.cal=cal;LS.s('mv_ep_'+curEp,r)}
+function refresh(){const r=ensureEp(curEp);cal=r.cal||{a:1,b:0,p:[]};cues=(r.c||[]).map(a=>({s:a[0],e:a[1],s0:a[0],e0:a[1],eng:a[2],chn:a[3],seg:a[4]?1:0}));applyCal();lock=null;ovk='';render()}
+function attach(code,f){vids[code]=f;vf=f;if(v._u)URL.revokeObjectURL(v._u);v._u=URL.createObjectURL(f);v.src=v._u;v.load()}
+function openEp(code){curEp=code;LS.s('mv_cur',code);refresh();if(vids[code])attach(code,vids[code]);else loadStored(code)}
+function calAt(i){if(!v.src)return toast('先选视频');const c=cues[i],t=v.currentTime;if(cal.p.length>=2)cal.p=[];cal.p.push([c.s0,t]);
+if(cal.p.length==1){cal.a=1;cal.b=t-c.s0;toast('已校准，偏移 '+cal.b.toFixed(1)+' 秒。再点另一句（隔远些）可校正快慢')}
+else{const[[s1,t1],[s2,t2]]=cal.p;if(Math.abs(s2-s1)<30){cal.p=[cal.p[0]];return toast('两句要隔远一点（至少30秒）')}cal.a=(t2-t1)/(s2-s1);cal.b=t1-cal.a*s1;toast('已校准快慢和偏移')}
+applyCal();persist();ovk='';chime()}
+$('bCa').onclick=()=>{calM=!calM;$('bCa').classList.toggle('on',calM);if(calM)toast('播放到听见某句刚开始时，点那一句字幕')};
+const nudge=d=>{cal.b+=d;applyCal();persist();ovk='';toast('字幕偏移 '+(cal.b>=0?'+':'')+cal.b.toFixed(1)+' 秒')};$('bM5').onclick=()=>nudge(-.5);$('bP5').onclick=()=>nudge(.5);
+const ULK='<svg viewBox="0 0 24 24"><path d="M12 20.5s-8-5-8-10.6a4.5 4.5 0 018-2.8 4.5 4.5 0 018 2.8c0 5.6-8 10.6-8 10.6z"/></svg>',LCK='<svg viewBox="0 0 24 24"><path d="M12 20.5s-8-5-8-10.6a4.5 4.5 0 018-2.8 4.5 4.5 0 018 2.8c0 5.6-8 10.6-8 10.6z"/><circle cx="12" cy="11.2" r="1.5" fill="#fff" stroke="none"/></svg>';
+$('lk').onclick=()=>{locked=!locked;document.body.classList.toggle('lk',locked);document.body.classList.remove('cs');$('lk').innerHTML=locked?LCK:ULK;$('lk').classList.toggle('on',locked)};
+$('fs').onclick=async()=>{if(!document.documentElement.requestFullscreen)return toast('苹果手机不用点这个，直接把手机横过来就是全屏');try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen();try{await screen.orientation.lock('landscape')}catch(e){}}else{try{screen.orientation.unlock()}catch(e){}await document.exitFullscreen()}}catch(e){toast('这个浏览器不支持全屏')}};
+const setN=(c,n)=>{const r=ensureEp(c);r.n=n;LS.s('mv_ep_'+c,r)};
+const onV=e=>{let fs=[...e.target.files];e.target.value='';if(!fs.length)return;const ok=f=>/\.(mp4|m4v|mov|webm|mkv|3gp)$/i.test(f.name)||/^video\//.test(f.type);const bad=fs.filter(f=>!ok(f));fs=fs.filter(ok);if(!fs.length)return toast('这不是视频文件，请选 mp4 等视频');if(bad.length)toast('已跳过 '+bad.length+' 个非视频文件');
+if(fs.length==1){const f=fs[0],c=codeOf(f.name),had=((LS.g('mv_ep_'+c,{}).c)||[]).length>0,t=had?c:(curEp&&!vids[curEp]?curEp:c);ensureEp(t,f.name);setN(t,f.name);curEp=t;LS.s('mv_cur',t);refresh();attach(t,f);btns();toast('视频已选：'+f.name);saveVids([[t,f]])}
+else{fs.forEach(f=>{const c=codeOf(f.name);vids[c]=f;ensureEp(c,f.name);setN(c,f.name)});toast('已选 '+fs.length+' 个视频，点一集开始看');eplist();saveVids(fs.map(f=>[codeOf(f.name),f]))}};
+$('fV').onchange=onV;$('fV2').onchange=onV;
+async function readSub(f){let b;try{b=new Uint8Array(await f.arrayBuffer())}catch(x){return 0}
+if((b[0]==0x52&&b[1]==0x61&&b[2]==0x72)||(b[0]==0x50&&b[1]==0x4B)||(b[0]==0x37&&b[1]==0x7A))return'zip';
+let t;if(b[0]==0xFF&&b[1]==0xFE)t=new TextDecoder('utf-16le').decode(b);else{t=new TextDecoder('utf-8').decode(b);if(t.includes('\uFFFD'))try{t=new TextDecoder('gb18030').decode(b)}catch(x){}}
+const r=vParse(t);r.sort((x,y)=>x.s-y.s);return r}
+$('fS').onchange=async e=>{const fs=[...e.target.files];e.target.value='';if(!fs.length)return;$('inf').textContent='正在读取字幕…';let n=0,z=0;
+for(const f of fs){const r=await readSub(f);if(r==='zip'){z++;continue}if(!r||!r.length)continue;const t=(fs.length==1&&curEp)?curEp:codeOf(f.name),rec=ensureEp(t,f.name);rec.c=r.map(c=>[c.s,c.e,c.eng,c.chn]);rec.cal={a:1,b:0,p:[]};LS.s('mv_ep_'+t,rec);n++;if(!curEp){curEp=t;LS.s('mv_cur',t)}}
+if(curEp)refresh();if(n)chime();toast(z&&!n?'这是压缩包，请先解压，再选里面的 srt 或 ass':n?'已读取 '+n+' 个字幕':'读不出字幕');btns();if(n)$('inf').textContent+=' ✓'};
+function eplist(){const l=eps().sort();$('ep').innerHTML='<div class="sh"><h2>集数（'+l.length+'）</h2><div class="row"><button class="b on" onclick="cl(\'ep\')">关闭</button></div>'+(l.map(c=>{const r=LS.g('mv_ep_'+c,{});return`<div class="vi"><button class="b ${c==curEp?'on':''}" data-o="${esc(c)}">${esc((vids[c]&&vids[c].name)||r.n||c)}</button> ${(r.c||[]).length}句 ${stored.has(c)?'· 视频已存本机':vids[c]?'· 视频已选（未存）':'· 没选视频'} <button class="b" data-x="${esc(c)}">删除</button><small>${esc(c)}</small></div>`}).join('')||'<p style="color:var(--m)">还没有。设置里可以一次选多个视频和多个字幕，按 S01E01 这样的集数自动配对。</p>')+'</div>';
+$('ep').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{openEp(b.dataset.o);cl('ep')});
+$('ep').querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{const c=b.dataset.x;localStorage.removeItem('mv_ep_'+c);localStorage.removeItem('mv_pos_'+c);LS.s('mv_eps',eps().filter(x=>x!=c));delete vids[c];stored.delete(c);vdbDel(c).catch(()=>{});if(c==curEp){curEp='';LS.s('mv_cur','');cues=[];render()}eplist()});op('ep')}
+$('bEp').onclick=eplist;
+async function rb(f,o,n){return new DataView(await f.slice(o,o+n).arrayBuffer())}
+async function bx(f,s,e){const r=[];let o=s;while(o+8<=e){const h=await rb(f,o,16);let z=h.getUint32(0),hl=8;const ty=String.fromCharCode(h.getUint8(4),h.getUint8(5),h.getUint8(6),h.getUint8(7));if(z==1){z=Number(h.getBigUint64(8));hl=16}else if(z==0)z=e-o;if(z<8)break;r.push({ty,o,hl,e:o+z});o+=z}return r}
+const kid=async(f,b,t)=>(await bx(f,b.o+b.hl,b.e)).find(x=>x.ty==t);
+async function extractSoft(f){const mv=(await bx(f,0,f.size)).find(x=>x.ty=='moov');if(!mv)return[];const all=[];
+for(const tk of(await bx(f,mv.o+mv.hl,mv.e)).filter(x=>x.ty=='trak')){const md=await kid(f,tk,'mdia');if(!md)continue;const hd=await kid(f,md,'hdlr'),mh=await kid(f,md,'mdhd'),mi=await kid(f,md,'minf');if(!hd||!mh||!mi)continue;
+if(!['sbtt','sbtl','text','subt'].includes(new TextDecoder().decode(await f.slice(hd.o+hd.hl+8,hd.o+hd.hl+12).arrayBuffer())))continue;
+const m2=await rb(f,mh.o+mh.hl,24),ts=m2.getUint8(0)==1?m2.getUint32(20):m2.getUint32(12),st=await kid(f,mi,'stbl');if(!st)continue;
+const tb={};for(const x of await bx(f,st.o+st.hl,st.e))tb[x.ty]=new DataView(await f.slice(x.o+x.hl,x.e).arrayBuffer());
+if(!tb.stsz||!tb.stsc||!tb.stts||!(tb.stco||tb.co64))continue;
+const ns=tb.stsz.getUint32(8),fx=tb.stsz.getUint32(4),sz=i=>fx||tb.stsz.getUint32(12+4*i),nc=(tb.stco||tb.co64).getUint32(4),co=i=>tb.stco?tb.stco.getUint32(8+4*i):Number(tb.co64.getBigUint64(8+8*i));
+const sc=[];for(let i=0;i<tb.stsc.getUint32(4);i++)sc.push([tb.stsc.getUint32(8+12*i),tb.stsc.getUint32(12+12*i)]);
+const offs=[];let si=0;for(let c=1;c<=nc&&si<ns;c++){let k=sc.length-1;while(k>0&&sc[k][0]>c)k--;let o=co(c-1);for(let j=0;j<sc[k][1]&&si<ns;j++,si++){offs.push(o);o+=sz(si)}}
+const tm=[];let tt=0;for(let i=0;i<tb.stts.getUint32(4);i++){const c=tb.stts.getUint32(8+8*i),d=tb.stts.getUint32(12+8*i);for(let j=0;j<c;j++){tm.push([tt/ts,(tt+d)/ts]);tt+=d}}
+for(let i=0;i<ns;i++){const b=await f.slice(offs[i],offs[i]+sz(i)).arrayBuffer();if(b.byteLength<3)continue;const n=new DataView(b).getUint16(0);if(!n)continue;all.push({s:tm[i][0],e:tm[i][1],txt:new TextDecoder().decode(new Uint8Array(b,2,Math.min(n,b.byteLength-2)))})}}
+all.sort((a,b)=>a.s-b.s);const g=[];all.forEach(x=>{const l=g[g.length-1];if(l&&Math.abs(l.s-x.s)<.5){l.t.push(x.txt);l.e=Math.max(l.e,x.e)}else g.push({s:x.s,e:x.e,t:[x.txt]})});
+const out=[];g.forEach(x=>{const c=vCueFromText(x.t.join('\n'));if(c)out.push({s:x.s,e:x.e,eng:c.eng,chn:c.chn})});return out}
+$('pX').onclick=async()=>{if(!vf)return toast('先选视频');if(!/\.(mp4|m4v|mov)$/i.test(vf.name))return toast('目前只支持 mp4 里的内嵌字幕');$('inf').textContent='正在提取内嵌字幕…';
+try{const r=await extractSoft(vf);if(!r.length){btns();return toast('没找到可提取的文字字幕（可能是硬字幕）')}
+if(!curEp){curEp=codeOf(vf.name);LS.s('mv_cur',curEp)}const rec=ensureEp(curEp,vf.name);rec.c=r.map(c=>[c.s,c.e,c.eng,c.chn]);rec.cal={a:1,b:0,p:[]};LS.s('mv_ep_'+curEp,rec);refresh();chime();toast('已提取 '+r.length+' 句');$('inf').textContent+=' ✓'}catch(e){btns();toast('提取失败')}};
+
+const clamp=(x,a,b)=>Math.min(b==null?1:b,Math.max(a==null?0:a,x));
+function hud(n,x){const h=$('hud');h.textContent=n+' '+Math.round(x*100)+'%';h.style.display='block';clearTimeout(h._t);h._t=setTimeout(()=>h.style.display='none',900)}
+let od=null,odMoved=false;const OYK=()=>land()?'mv_oyL':'mv_oyP',OYD=()=>land()?.1:.015;
+function setOv(f){const H=$('vw').clientHeight||innerHeight;if(f==null)f=LS.g(OYK(),OYD());document.documentElement.style.setProperty('--ob',Math.round(f*H)+'px')}
+{const o=$('ov');o.addEventListener('touchstart',e=>{if(e.touches.length>1)return;e.stopPropagation();od={y:e.touches[0].clientY,f:+LS.g(OYK(),OYD()),H:$('vw').clientHeight||innerHeight};od.c=od.f;odMoved=false},{passive:true});
+o.addEventListener('touchmove',e=>{if(!od)return;const dy=od.y-e.touches[0].clientY;if(!odMoved&&Math.abs(dy)<8)return;odMoved=true;e.preventDefault();od.c=clamp(od.f+dy/od.H,0,.8);setOv(od.c)},{passive:false});
+o.addEventListener('touchend',()=>{if(od&&odMoved)LS.s(OYK(),od.c);od=null;setTimeout(()=>odMoved=false,60)})}
+function setFit(){{const a0=v.videoWidth/v.videoHeight;if(a0>0)$('vw').style.setProperty('--ar',Math.max(a0,1.5).toFixed(4))}setOv();const B=$('vw'),W=B.clientWidth,H=B.clientHeight,a=v.videoWidth/v.videoHeight;v.style.objectFit='contain';if(!a||!W||!H){v.style.transform='';curS=1;return}
+let w,h;if(W/H>a){h=H;w=H*a}else{w=W;h=W/a}
+let s=1;if(fit!=1){s=Math.max(1,.9*W/w);s=Math.min(s,W/w);s=Math.min(s,Math.max(1,H/(.88*h)));if(fit==2)s*=1.15}
+const O=land()?'L':'P',z=+LS.g('mv_z'+O,0),ty=+LS.g('mv_ty'+O,0)/100*H;if(z>0)s=z;curS=s;
+v.style.transform=(s>1.001||ty)?'translateY('+ty.toFixed(1)+'px) scale('+s.toFixed(4)+')':''}
+let curS=1;
+let icT=0;const showIc=()=>{document.body.classList.add('ic');clearTimeout(icT);if(!v.paused)icT=setTimeout(()=>document.body.classList.remove('ic'),3000)};
+v.addEventListener('play',showIc);v.addEventListener('pause',showIc);v.addEventListener('emptied',showIc);showIc();
+const setFz=()=>document.documentElement.style.setProperty('--fz',fz);
+try{v.volume=vol}catch(e){}$('dim').style.opacity=1-bri;setFit();setFz();
+$('fit').onclick=()=>{fit=(fit+1)%3;LS.s('mv_fit2',fit);['L','P'].forEach(o=>{LS.s('mv_z'+o,0);LS.s('mv_ty'+o,0)});setFit();toast('画面：'+['智能填宽（不变形）','完整显示','再放大'][fit])};
+v.addEventListener('loadedmetadata',setFit);addEventListener('resize',setFit);addEventListener('orientationchange',()=>setTimeout(setFit,300));if(window.ResizeObserver)new ResizeObserver(setFit).observe($('vw'));
+const PAL=[['白','#ffffff'],['黄','#ffd54a'],['青','#5ce1e6'],['绿','#8be28b'],['橙','#ffa24a'],['粉','#ff8fc8'],['蓝','#6db3ff']];
+let colE=LS.g('mv_colE',''),colC=LS.g('mv_colC','');
+function setCol(){const r=document.documentElement.style;r.removeProperty('--ec');r.removeProperty('--cc');if(colE)r.setProperty('--ecur',colE);else r.removeProperty('--ecur')
+if(colC){r.setProperty('--ccur',colC);r.setProperty('--cco',colC)}else{r.removeProperty('--ccur');r.removeProperty('--cco')}
+$('mCoV').textContent='英 '+(colE?(PAL.find(p=>p[1]==colE)||['自选'])[0]:'默认')+' · 中 '+(colC?(PAL.find(p=>p[1]==colC)||['自选'])[0]:'默认');
+$('swE').innerHTML='<i class="df'+(colE?'':' on')+'" data-w="E" data-v="">默认</i>'+PAL.map(p=>`<i class="${colE==p[1]?'on':''}" data-w="E" data-v="${p[1]}" style="background:${p[1]}"></i>`).join('');
+$('swC').innerHTML='<i class="df'+(colC?'':' on')+'" data-w="C" data-v="">默认</i>'+PAL.map(p=>`<i class="${colC==p[1]?'on':''}" data-w="C" data-v="${p[1]}" style="background:${p[1]}"></i>`).join('')}
+['swE','swC'].forEach(id=>$(id).addEventListener('click',e=>{const t=e.target.closest('i');if(!t)return;if(t.dataset.w=='E'){colE=t.dataset.v;LS.s('mv_colE',colE)}else{colC=t.dataset.v;LS.s('mv_colC',colC)}setCol()}));
+setCol();
+const fzs=d=>{fz=+clamp(fz+d,.7,2.2).toFixed(2);LS.s('mv_fz',fz);setFz();toast('字幕大小 '+Math.round(fz*100)+'%')};$('bFm').onclick=()=>fzs(-.15);$('bFp').onclick=()=>fzs(.15);
+$('bBk').onclick=async()=>{if(!document.fullscreenElement)return toast('不在全屏状态，把手机竖过来就回到竖屏');try{screen.orientation.unlock()}catch(e){}try{await document.exitFullscreen()}catch(e){}};
+$('vw').addEventListener('touchstart',e=>{if(e.target.closest('.w')||e.touches.length>1){g=null;return}const p=e.touches[0],r=$('vw').getBoundingClientRect();g={x:p.clientX,y:p.clientY,side:(p.clientX-r.left)<r.width/2?'b':'v',mv:false,v0:vol,b0:bri,h:r.height}},{passive:true});
+$('vw').addEventListener('touchmove',e=>{if(!g)return;const p=e.touches[0],dy=g.y-p.clientY,dx=p.clientX-g.x;if(!g.mv){if(Math.abs(dy)<14||Math.abs(dy)<Math.abs(dx))return;g.mv=true}e.preventDefault();const d=dy/(g.h*.8);
+if(g.side=='v'){vol=clamp(g.v0+d);try{v.volume=vol}catch(x){}hud('音量',vol)}else{bri=clamp(g.b0+d,.15,1);$('dim').style.opacity=1-bri;hud('亮度',bri)}},{passive:false});
+$('vw').addEventListener('touchend',()=>{if(g&&g.mv){LS.s('mv_vol',vol);LS.s('mv_bri',bri)}g=null});
+const mq=matchMedia('(orientation:landscape) and (max-height:520px)'),lay=()=>mq.matches?$('bar').prepend($('pl')):$('ct').append($('pl'));if(mq.addEventListener)mq.addEventListener('change',lay);lay();
+
+
+const LP=()=>cnt==0?Infinity:cnt-1;
+let dp=null;
+function renum(){let n=0;cues.forEach(c=>{if(c.seg)c.eng='第'+(++n)+'段'})}
+function addSeg(s,e){if(!curEp){curEp=vf?codeOf(vf.name):'单片';LS.s('mv_cur',curEp);ensureEp(curEp,vf&&vf.name)}
+cues.push({s,e,s0:(s-cal.b)/cal.a,e0:(e-cal.b)/cal.a,eng:'',chn:'',seg:1});cues.sort((x,y)=>x.s-y.s);renum();persist();render();lock=null;toast('已存一段 '+fmt(s)+'–'+fmt(e))}
+function segLp(i,o){const c=cues[i];if(!c)return;
+if(o=='gap'){const L=[.5,1,1.5,2];loopGap=L[(L.indexOf(loopGap)+1)%L.length];LS.s('mv_lg',loopGap);document.querySelectorAll('.gp').forEach(b=>b.textContent='间隔 '+loopGap+'秒');return}
+if(o=='loop'){if(loopCue===c){loopCue=null;busy=false}else{if(!v.src)return toast('先在设置里选视频');loopCue=c;lock=null;busy=false;v.currentTime=c.s;v.play()}const y=$('ls').scrollTop;render();$('ls').scrollTop=y;return}
+segOp(i,o)}
+function segOp(i,o){const c=cues[i];if(!c)return;if(o=='del'){if(loopCue===c)loopCue=null;cues.splice(i,1)}else{const d=o[1]=='+'?.5:-.5;if(o[0]=='s')c.s=Math.max(0,c.s+d);else c.e+=d;if(c.e<=c.s+.2){c.e=c.s+.3}c.s0=(c.s-cal.b)/cal.a;c.e0=(c.e-cal.b)/cal.a}
+renum();persist();lock=null;const y=$('ls').scrollTop;render();$('ls').scrollTop=y}
+$('bDp').onclick=()=>{if(!v.src)return toast('先选视频');const t=v.currentTime;
+if(dp==null){dp=t;$('bDp').textContent='打点中…';$('bDp').classList.add('on');return toast('开始点已记，这句说完再点一下')}
+if(t<=dp+.3)return toast('结束点要在开始点之后');addSeg(dp,t);dp=null;$('bDp').textContent='打点';$('bDp').classList.remove('on')};
+
+
+/* ===== 选句收藏 / 收藏夹 ===== */
+let edMode=false,edI=-1,edDel=false,selMode=false,selA=-1,selB=-1,fvOff=new Set();
+const FVK='mv_favs_v1',fvRd=()=>{const l=LS.g(FVK,[]);return Array.isArray(l)?l:[]};
+function selRange(){if(selA<0)return[];const b=selB<0?selA:selB,lo=Math.min(selA,b),hi=Math.max(selA,b),r=[];for(let i=lo;i<=hi;i++)if(cues[i]&&!cues[i].seg)r.push(i);return r}
+function selUi(){const r=selRange(),s=new Set(r);document.querySelectorAll('#ls .c').forEach(el=>el.classList.toggle('sel',s.has(+el.dataset.i)));
+$('fvt').textContent=r.length?'已选 '+r.length+' 句'+(selB<0?'（再点另一句，中间全部选中）':''):'点一句=选单句；再点另一句，中间全部选中';
+$('fvb').style.display=selMode?'flex':'none';$('bFv').classList.toggle('on',selMode);$('bFv').textContent=selMode?'选句中…':'选句收藏'}
+function selTap(i){if(selA<0||selB>=0){selA=i;selB=-1}else selB=i;selUi()}
+{const _r=render;render=function(){_r();selA=selB=-1;selUi()}}
+$('bFv').onclick=()=>{if(!selMode&&edMode){edMode=false;edUi()}selMode=!selMode;selA=selB=-1;selUi();toast(selMode?'选句模式：点句子选中，点单词不查词':'已退出选句，点句子恢复播放')};
+$('fvEx').onclick=()=>{selMode=false;selA=selB=-1;selUi()};
+$('fvCl').onclick=()=>{selA=selB=-1;selUi()};
+$('fvOk').onclick=()=>{const r=selRange();if(!r.length)return toast('先点要收藏的句子');
+const items=r.map(i=>({eng:cues[i].eng,chn:cues[i].chn||''})),key=JSON.stringify(items),l=fvRd();
+if(l.some(x=>JSON.stringify(x.items)===key))return toast('这段已经收藏过了');
+l.unshift({id:Date.now()+'_'+Math.random().toString(36).slice(2,6),addedAt:Date.now(),items});LS.s(FVK,l);selA=selB=-1;selUi();chime();toast('已收藏 '+items.length+' 句（共 '+l.length+' 条）')};
+let fvTab='s';const exSel={k:'s',f:'txt'},fvType=x=>x.items.length>1?'p':'s';
+$('fv').addEventListener('change',e=>{const c=e.target.closest('[data-c]');if(c){if(c.checked)fvOff.delete(c.dataset.c);else fvOff.add(c.dataset.c)}});
+function fvOpen(){const all=fvRd(),ns=all.filter(x=>fvType(x)=='s').length,np=all.length-ns,l=all.filter(x=>fvType(x)==fvTab);
+$('fv').innerHTML=`<div class="sh"><h2>收藏夹</h2><div class="row"><button class="b ${fvTab=='s'?'on':''}" data-t="s">单句（${ns}）</button><button class="b ${fvTab=='p'?'on':''}" data-t="p">整段（${np}）</button><button class="b" onclick="cl('fv')" style="margin-left:auto">关闭</button></div>`+(l.length?'<div style="color:var(--m);font-size:13px">勾选的会被导出（默认全选）。导出请点底部栏“导出”</div>':'')+
+(l.map(x=>`<div class="vi"><label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" data-c="${x.id}" ${fvOff.has(x.id)?'':'checked'} style="width:22px;height:22px;flex:none;margin-top:2px"><div style="flex:1">${x.items.map(t=>`<div class="en" style="font-size:16px">${esc(t.eng)}</div><div class="cn" style="font-size:14px">${esc(t.chn)}</div>`).join('')}</div></label><div class="row" style="margin:6px 0 0;justify-content:flex-end"><small style="margin-right:auto">${x.items.length} 句</small><button class="b" data-x="${x.id}">删除</button></div></div>`).join('')||'<p style="color:var(--m)">这里还是空的。点“选句收藏”，再点要收藏的句子，点“确认收藏”。</p>')+'</div>';
+$('fv').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{fvTab=b.dataset.t;fvOpen()});
+$('fv').querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{const id=b.dataset.x;LS.s(FVK,fvRd().filter(x=>x.id!==id));fvOff.delete(id);fvOpen()});op('fv')}
+function exOpen(){const all=fvRd(),n={w:rd().length,s:all.filter(x=>fvType(x)=='s'&&!fvOff.has(x.id)).length,p:all.filter(x=>fvType(x)=='p'&&!fvOff.has(x.id)).length};
+const kb=[['w','单词'],['s','单句'],['p','整段']].map(([k,t])=>`<button class="b ${exSel.k==k?'on':''}" data-k="${k}">${t}（${n[k]}）</button>`).join(''),fb=[['txt','TXT'],['csv','CSV']].map(([f,t])=>`<button class="b ${exSel.f==f?'on':''}" data-f="${f}">${t}</button>`).join('');
+$('ex').innerHTML=`<div class="sh"><h2>导出</h2><div style="color:var(--m);font-size:13px">导出什么</div><div class="row">${kb}</div><div style="color:var(--m);font-size:13px">格式</div><div class="row">${fb}</div><div style="color:var(--m);font-size:13px">单句、整段：导出收藏夹里勾选的；单词：导出整个生词本</div><div class="row"><button class="b on" id="exGo" style="flex:1">确认导出</button><button class="b" onclick="cl('ex')">关闭</button></div></div>`;
+$('ex').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{exSel.k=b.dataset.k;exOpen()});$('ex').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{exSel.f=b.dataset.f;exOpen()});$('exGo').onclick=doExport;op('ex')}
+function doExport(){const k=exSel.k,f=exSel.f,q=t=>'"'+String(t||'').replace(/"/g,'""')+'"',csv=rows=>rows.map(r=>r.map(q).join(',')).join('\r\n');let txt,name;
+if(k=='w'){const l=rd();if(!l.length)return toast('生词本是空的');if(f=='csv'){exp();cl('ex');return}
+txt=l.map(x=>{const r=look(x.word);return[x.word+(r.p?'  /'+r.p+'/':''),r.m.replace(/\n/g,'；'),x.ctx||'',x.cn||''].filter(Boolean).join('\n')}).join('\n\n');name='生词本.txt'}
+else{const l=fvRd().filter(x=>fvType(x)==k&&!fvOff.has(x.id)).reverse();if(!l.length)return toast(k=='s'?'没有勾选的单句':'没有勾选的整段');const nm=k=='s'?'收藏单句':'收藏整段';
+if(f=='txt'){txt=l.map(x=>x.items.map(t=>t.eng+(t.chn?'\n'+t.chn:'')).join('\n')).join('\n\n');name=nm+'.txt'}
+else{txt=csv([['序号','英文','中文']].concat(l.map((x,i)=>[i+1,x.items.map(t=>t.eng).join('\n'),x.items.map(t=>t.chn).filter(Boolean).join('\n')])));name=nm+'.csv'}}
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+txt],{type:(f=='csv'?'text/csv':'text/plain')+';charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();a.remove();cl('ex');toast('已导出：'+name)}
+$('bFl').onclick=fvOpen;$('bEx').onclick=exOpen;
+
+/* ===== 自动滚动：操作别的功能时暂停，弄完自动恢复 ===== */
+let usrHold=false,usrUntil=0,wasP=false,asSt='';
+const asPaused=()=>usrHold||edMode||Date.now()<usrUntil||selMode||$('fp').style.display!='none'||[...document.querySelectorAll('.pop')].some(p=>p.id!='sp'&&p.style.display=='flex');
+function asUi(force){const st=!auto?'off':asPaused()?'pz':'au';if(st===asSt&&!force)return;asSt=st;const b=$('bAu');b.classList.remove('on');b.classList.toggle('au',st=='au');b.classList.toggle('pz',st=='pz');b.textContent=st=='pz'?'暂停中':'自动滚动'}
+{const ls=$('ls'),hold=()=>{usrHold=true},rel=()=>{usrHold=false;usrUntil=Date.now()+5000};ls.addEventListener('touchstart',hold,{passive:true});ls.addEventListener('touchend',rel,{passive:true});ls.addEventListener('touchcancel',rel,{passive:true});ls.addEventListener('wheel',()=>{usrUntil=Date.now()+5000},{passive:true})}
+{const _b=btns;btns=function(){_b();asUi(true)}}
+setInterval(()=>{const p=asPaused();if(auto&&wasP&&!p&&cur>=0){const e=$('c'+cur);if(e)e.scrollIntoView({block:'center',behavior:'smooth'})}wasP=p;asUi()},150);
+
+/* ===== 编辑字幕 / 导出字幕 ===== */
+function edUi(){$('bEd').classList.toggle('on',edMode);$('bEd').textContent=edMode?'编辑中…':'编辑字幕'}
+$('bEd').onclick=()=>{edMode=!edMode;if(edMode&&selMode){selMode=false;selA=selB=-1;selUi()}edUi();toast(edMode?'编辑模式：点要改的那一句':'已退出编辑，点句子恢复播放')};
+function edOpen(i){const c=cues[i];if(!c)return;edI=i;edDel=false;
+$('ed').innerHTML=`<div class="sh"><h2>编辑字幕 · 第${i+1}句</h2><div style="color:var(--m);font-size:13px">${fmt(c.s)}–${fmt(c.e)}</div><div style="margin:8px 0 4px;color:var(--m);font-size:13px">英文</div><textarea id="edE"></textarea><div style="margin:8px 0 4px;color:var(--m);font-size:13px">中文</div><textarea id="edC"></textarea><div class="row"><button class="b on" id="edS" style="flex:1">保存</button><button class="b" id="edD">删除这句</button><button class="b" onclick="cl('ed')">取消</button></div></div>`;
+$('edE').value=c.eng;$('edC').value=c.chn||'';$('edS').onclick=edSave;$('edD').onclick=edDelete;op('ed')}
+function edSave(){const c=cues[edI];if(!c){cl('ed');return}const e=$('edE').value.replace(/\s*\n\s*/g,' ').trim(),h=$('edC').value.replace(/\s*\n\s*/g,' ').trim();
+if(!e&&!h)return toast('英文和中文不能都空，要删请点“删除这句”');
+c.eng=e;c.chn=h;persist();ovk='';const y=$('ls').scrollTop;render();$('ls').scrollTop=y;cl('ed');chime();toast('已保存')}
+function edDelete(){if(!edDel){edDel=true;$('edD').textContent='再点一次确认删除';$('edD').classList.add('dg');return}
+const c=cues[edI];if(c){if(loopCue===c)loopCue=null;cues.splice(edI,1);renum();persist();lock=null;ovk='';const y=$('ls').scrollTop;render();$('ls').scrollTop=y}cl('ed');toast('已删除这句')}
+const srtT=t=>{const m=Math.max(0,Math.round(t*1000)),p=(n,w)=>String(n).padStart(w||2,'0');return p(Math.floor(m/3600000))+':'+p(Math.floor(m%3600000/60000))+':'+p(Math.floor(m%60000/1000))+','+p(m%1000,3)};
+$('bSb').onclick=()=>{const l=cues.filter(c=>!c.seg&&(c.eng||c.chn));if(!l.length)return toast('没有字幕可导出');
+const txt=l.map((c,i)=>(i+1)+'\r\n'+srtT(c.s)+' --> '+srtT(Math.max(c.e,c.s+.2))+'\r\n'+[c.eng,c.chn].filter(Boolean).join('\r\n')+'\r\n').join('\r\n');
+const n=((curEp&&LS.g('mv_ep_'+curEp,{}).n)||curEp||'字幕').replace(/\.[A-Za-z0-9]{2,4}$/,'').replace(/[\\\/:*?"<>|]/g,'_'),name=n+'-改.srt';
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/x-subrip;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast('已导出：'+name+'（'+l.length+' 句）')};
+asUi(true);
+selUi();
+if(curEp&&LS.g('mv_ep_'+curEp,null))refresh();else render();
+
+/* ===== 视频存储：导入的视频存在浏览器里（IndexedDB），下次打开不用再选 ===== */
+const stored=new Set();
+const VDB={db:null,
+open(){if(this.db)return Promise.resolve(this.db);return new Promise((ok,no)=>{let q;try{q=indexedDB.open('mv_videos',1)}catch(e){return no(e)}q.onupgradeneeded=()=>{const d=q.result;d.createObjectStore('v');d.createObjectStore('m')};q.onsuccess=()=>{this.db=q.result;this.db.onclose=()=>{this.db=null};ok(q.result)};q.onerror=()=>no(q.error)})},
+async run(names,mode,fn){const db=await this.open();return new Promise((ok,no)=>{let t,out;try{t=db.transaction(names,mode);out=fn(...names.map(n=>t.objectStore(n)))}catch(e){return no(e)}t.oncomplete=()=>ok(out&&'result' in out?out.result:undefined);t.onerror=()=>no(t.error);t.onabort=()=>no(t.error||new DOMException('abort','AbortError'))})}};
+const vdbPut=(code,f)=>VDB.run(['v','m'],'readwrite',(v,m)=>{v.put(f,code);m.put({code,name:f.name,size:f.size,added:Date.now()},code)});
+const vdbDel=code=>VDB.run(['v','m'],'readwrite',(v,m)=>{v.delete(code);m.delete(code)});
+const vdbMeta=()=>VDB.run(['m'],'readonly',m=>m.getAll());
+const vdbGet=code=>VDB.run(['v'],'readonly',v=>v.get(code));
+const fmtB=n=>n>=1073741824?(n/1073741824).toFixed(2)+' GB':n>=1048576?Math.round(n/1048576)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+async function saveVids(list){let n=0;for(const[c,f]of list){try{toast('正在存到本机 '+(n+1)+'/'+list.length+'，请稍等…',120000);await vdbPut(c,f);stored.add(c);n++}catch(e){toast((e&&e.name=='QuotaExceededError')?'手机空间不够，没存进去。到“更多→视频存储”删掉旧视频再试':'存不进去，这次只能临时播放',4000);updVsVal();return}}
+if(n){toast('已存到本机 '+n+' 个视频，下次不用再选',3000);try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}}updVsVal();if($('ep').style.display=='flex')eplist()}
+async function loadStored(code){try{let f=await vdbGet(code);if(f&&curEp===code){if(!f.name)f=new File([f],code,{type:f.type||'video/mp4'});vids[code]=f;attach(code,f);btns();return}}catch(e){}if(cues.length&&curEp===code)toast('这集还没选视频，去设置里选')}
+async function vsInfo(){let l=[];try{l=await vdbMeta()}catch(e){}l.sort((a,b)=>b.added-a.added);return{l,used:l.reduce((s,x)=>s+(x.size||0),0)}}
+async function updVsVal(){const r=await vsInfo();$('mVsV').textContent=r.used?fmtB(r.used):'未存'}
+async function vsShow(){const{l,used}=await vsInfo();$('mvU').textContent=fmtB(used);
+try{const e=await navigator.storage.estimate();$('mvF').textContent=e.quota?'约 '+fmtB(Math.max(0,e.quota-e.usage)):'未知'}catch(x){$('mvF').textContent='未知'}
+try{$('mvPv').textContent=(await navigator.storage.persisted())?'已开启':'未开启'}catch(x){$('mvPv').textContent='不支持'}
+$('mvL').innerHTML=l.length?l.map(x=>`<div class="vr"><div style="flex:1;min-width:0"><div class="nm">${esc(x.name)}</div><small>${fmtB(x.size||0)}${LS.g('mv_ep_'+x.code,null)?' · 字幕已存':''}</small></div><button class="b" data-d="${esc(x.code)}">删除</button></div>`).join(''):'<div class="vr" style="color:var(--m)">还没存视频。到“设置”里选视频，会自动存到这里。</div>'}
+$('mVs').onclick=()=>{vsShow();$('mv').style.display='flex'};
+$('mvBk').onclick=()=>{$('mv').style.display='none'};
+$('bMo').addEventListener('click',updVsVal);
+$('mvP').onclick=async()=>{try{const ok=await navigator.storage.persist();toast(ok?'已开启永久保存':'浏览器没同意。把网页添加到主屏幕后更容易成功');vsShow()}catch(x){toast('这个浏览器不支持')}};
+$('mvL').onclick=async e=>{const b=e.target.closest('[data-d]');if(!b)return;
+if(!b.classList.contains('dg')){b.classList.add('dg');b.textContent='再点确认';clearTimeout(b._t);b._t=setTimeout(()=>{b.classList.remove('dg');b.textContent='删除'},3000);return}
+const c=b.dataset.d;try{await vdbDel(c)}catch(x){return toast('删除失败')}
+stored.delete(c);delete vids[c];if(c===curEp){v.pause();v.removeAttribute('src');v.load()}vsShow();updVsVal();toast('已删除视频，字幕还在')};
+vdbMeta().then(l=>{l.forEach(x=>stored.add(x.code));updVsVal();if(curEp&&!vids[curEp]&&stored.has(curEp))loadStored(curEp)}).catch(()=>{});
+
+/* ===== 跟读打分：用浏览器自带的语音识别，不需要密钥 ===== */
+let mcMode=false,mcI=-1,mcRec=null,mcOn=false,mcIv=0;
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const mcWd=t=>String(t).toLowerCase().replace(/[’‘]/g,"'").replace(/[^a-z0-9']/g,'');
+const mcLev=(a,b)=>{const m=a.length,n=b.length,d=[];for(let i=0;i<=m;i++)d[i]=[i];for(let j=1;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]==b[j-1]?0:1));return d[m][n]};
+const mcNear=(a,b)=>{const L=Math.max(a.length,b.length),k=mcLev(a,b);return(L>=4&&k<=1)||(L>=8&&k<=2)};
+const MC_C={"i'm":["i","am"],"you're":["you","are"],"we're":["we","are"],"they're":["they","are"],"it's":["it","is"],"that's":["that","is"],"what's":["what","is"],"he's":["he","is"],"she's":["she","is"],"there's":["there","is"],"don't":["do","not"],"didn't":["did","not"],"doesn't":["does","not"],"can't":["can","not"],"won't":["will","not"],"isn't":["is","not"],"aren't":["are","not"],"wasn't":["was","not"],"i'll":["i","will"],"i've":["i","have"],"i'd":["i","would"],"let's":["let","us"],"you'll":["you","will"],"you've":["you","have"],"we'll":["we","will"]};
+function mcFix(T,S){S=S.slice();for(const k in MC_C){const[a,b]=MC_C[k];if(T.includes(k)){for(let i=0;i<S.length-1;i++)if(S[i]==a&&S[i+1]==b)S.splice(i,2,k)}else{for(let i=0;i<S.length;i++)if(S[i]==k){for(let t=0;t<T.length-1;t++)if(T[t]==a&&T[t+1]==b){S.splice(i,1,a,b);break}}}}return S}
+function mcGrade(toks,said){const T=[],idx=[];toks.forEach((t,i)=>{const w=mcWd(t);if(w){T.push(w);idx.push(i)}});
+let S=String(said).toLowerCase().replace(/[’‘]/g,"'").replace(/[^a-z0-9'\s]/g,' ').split(/\s+/).filter(Boolean);S=mcFix(T,S);
+const N=T.length,M=S.length,sub=(a,b)=>a==b?0:mcNear(a,b)?.5:1,D=[],marks=new Array(toks.length).fill('');
+if(!N)return{score:0,marks};
+for(let i=0;i<=N;i++){D[i]=[];for(let j=0;j<=M;j++)D[i][j]=i==0?j:j==0?i:Math.min(D[i-1][j-1]+sub(T[i-1],S[j-1]),D[i-1][j]+1,D[i][j-1]+1)}
+const st=new Array(N).fill('ms'),eq=(x,y)=>Math.abs(x-y)<1e-9;let i=N,j=M,extra=0;
+while(i>0||j>0){if(i>0&&j>0&&eq(D[i][j],D[i-1][j-1]+sub(T[i-1],S[j-1]))){const c=sub(T[i-1],S[j-1]);st[i-1]=c==0?'ok':c==.5?'nr':'ms';i--;j--}
+else if(i>0&&eq(D[i][j],D[i-1][j]+1)){st[i-1]='ms';i--}
+else{extra++;j--}}
+let ok=0,nr=0;st.forEach((s,k)=>{marks[idx[k]]=s;if(s=='ok')ok++;else if(s=='nr')nr++});
+return{score:Math.round(Math.max(0,(ok+.5*nr)/N*100-Math.min(15,extra*3))),marks}}
+/* ===== Gemini 评分：录音（WAV）发给 Gemini，返回总分、每个词的分数和中文提示 ===== */
+const gmKey=()=>String(LS.g('mv_gm_key','')||'').trim();
+const gmModel=()=>String(LS.g('mv_gm_model','')||'').trim()||'gemini-flash-lite-latest';
+let gmOff=0;
+const gmOn=()=>LS.g('mv_gm_eng','chrome')=='gemini'&&!!gmKey()&&Date.now()>gmOff;
+const gm={ctx:null,stream:null,node:null,src:null,chunks:[],sr:48000,t0:0,tm:0,on:false};
+function gmClean(){clearTimeout(gm.tm);gm.on=false;try{if(gm.node){gm.node.onaudioprocess=null;gm.node.disconnect()}}catch(e){}try{gm.src&&gm.src.disconnect()}catch(e){}try{gm.stream&&gm.stream.getTracks().forEach(t=>t.stop())}catch(e){}try{gm.ctx&&gm.ctx.close()}catch(e){}gm.ctx=gm.stream=gm.node=gm.src=null}
+function wavOf(chunks,sr){let n=0;chunks.forEach(c=>n+=c.length);const f=new Float32Array(n);let o=0,peak=0;chunks.forEach(c=>{f.set(c,o);o+=c.length});for(let i=0;i<n;i++){const a=Math.abs(f[i]);if(a>peak)peak=a}
+const R=16000,ratio=sr/R,len=Math.floor(n/ratio),buf=new ArrayBuffer(44+len*2),d=new DataView(buf),w=(p,t)=>{for(let i=0;i<t.length;i++)d.setUint8(p+i,t.charCodeAt(i))};
+w(0,'RIFF');d.setUint32(4,36+len*2,true);w(8,'WAVE');w(12,'fmt ');d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);d.setUint32(24,R,true);d.setUint32(28,R*2,true);d.setUint16(32,2,true);d.setUint16(34,16,true);w(36,'data');d.setUint32(40,len*2,true);
+for(let i=0;i<len;i++){const a=Math.floor(i*ratio),b=Math.min(n,Math.max(a+1,Math.floor((i+1)*ratio)));let s=0,k=0;for(let j=a;j<b;j++){s+=f[j];k++}const x=Math.max(-1,Math.min(1,k?s/k:0));d.setInt16(44+i*2,x<0?x*32768:x*32767,true)}
+return{buf,peak}}
+function gmErr(e){const m=String((e&&e.message)||''),s=e&&e.status;if(e&&e.name=='AbortError')return'请求超时，再试一次';if(s==429)return'额度用完或请求太快';if(s==404)return'模型名不对，到“更多→跟读设置”里改';if(s==401||s==403||(s==400&&/api key/i.test(m)))return'密钥不对或没有权限，到“更多→跟读设置”检查';if(e instanceof TypeError)return'连不上 Gemini，请检查网络（需要能访问谷歌）';return'评分失败：'+m.slice(0,60)}
+async function gmCall(key,model,parts,cfg){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),30000);
+try{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{parts}],generationConfig:cfg}),signal:ctl.signal});
+const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error((j.error&&j.error.message)||('HTTP '+r.status));e.status=r.status;throw e}
+const ps=(((j.candidates||[])[0]||{}).content||{}).parts||[];return ps.map(p=>p.text||'').join('')}finally{clearTimeout(tm)}}
+async function gmBegin(){const AC2=window.AudioContext||window.webkitAudioContext;if(!AC2||!navigator.mediaDevices)return toast('这个浏览器不能录音，请用 Chrome，并用网址（https）打开');
+gm.ctx=new AC2();try{gm.ctx.resume()}catch(e){}
+try{gm.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:true}})}catch(e){gmClean();return toast('麦克风没打开。请允许网页使用麦克风；要用网址（https）打开，直接打开文件不行',4000)}
+gm.sr=gm.ctx.sampleRate;gm.src=gm.ctx.createMediaStreamSource(gm.stream);gm.node=gm.ctx.createScriptProcessor(4096,1,1);gm.chunks=[];
+gm.node.onaudioprocess=e=>{gm.chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)))};
+const z=gm.ctx.createGain();z.gain.value=0;gm.src.connect(gm.node);gm.node.connect(z);z.connect(gm.ctx.destination);
+gm.on=true;gm.t0=Date.now();mcUi(true,'正在录音…说完点一下');$('mcSay').textContent='请说……（最长 15 秒）';$('mcSc').innerHTML='';
+gm.tm=setTimeout(()=>{if(gm.on)gmEnd(true)},15000)}
+function gmToggle(){if(gm.on){gmEnd(true);return}clearInterval(mcIv);v.pause();gmBegin()}
+async function gmEnd(send){const chunks=gm.chunks,sr=gm.sr,dur=Date.now()-gm.t0,myI=mcI;gmClean();if(!send)return;
+if(dur<600){mcUi(false);return toast('录音太短，再说一次')}
+const W=wavOf(chunks,sr);if(W.peak<.01){mcUi(false);$('mcSay').textContent='';return toast('没录到声音，检查麦克风')}
+const c=cues[myI];if(!c)return;const toks=c.eng.split(/\s+/).filter(Boolean),idx=[],words=[];toks.forEach((t,i)=>{const w=t.replace(/[^A-Za-z0-9'’]/g,'');if(w){idx.push(i);words.push(w)}});
+const rb=$('mcRec');if(rb){rb.disabled=true;rb.textContent='评分中…';rb.classList.remove('on');rb.classList.add('pz')}$('mcSay').textContent='正在评分…';
+try{const b64=await new Promise(ok=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.readAsDataURL(new Blob([W.buf],{type:'audio/wav'}))});
+const prompt='You are a strict, consistent English pronunciation coach for a Chinese learner. Listen to the audio and compare it with the reference sentence.\nReference sentence: "'+c.eng.replace(/"/g,"'")+'"\nWORDS (in order): '+JSON.stringify(words)+'\nJudge only what you actually hear. If the audio is silent or unrelated, score everything 0.\nReturn JSON only: {"score":<0-100 overall>,"heard":"<what you heard, transcribed>","words":[<0-100 for each WORDS item, same order and same length>],"tip":"<one short sentence in Chinese (max 40 characters) naming the word or sound to fix and how to say it>"}\nScoring: 90+ clear and natural; 75-89 clear with minor accent; 50-74 understandable but several words off; below 50 hard to understand.';
+const txt=await gmCall(gmKey(),gmModel(),[{text:prompt},{inline_data:{mime_type:'audio/wav',data:b64}}],{temperature:0,responseMimeType:'application/json'});
+if(!mcOpen||mcI!==myI)return;
+let res;try{res=JSON.parse(txt.replace(/^\s*```(?:json)?|```\s*$/g,'').trim())}catch(e){throw new Error('返回的内容读不懂，再试一次')}
+const ws=Array.isArray(res.words)?res.words:[],marks=new Array(toks.length).fill('');idx.forEach((ti,k)=>{const s=+ws[k];if(!isNaN(s))marks[ti]=s>=80?'ok':s>=60?'nr':'ms'});
+mcPaint(Math.max(0,Math.min(100,Math.round(+res.score||0))),marks,String(res.heard||''),String(res.tip||''),'Gemini（AI 判断，仅供参考）')}
+catch(e){if(!mcOpen||mcI!==myI)return;$('mcSay').textContent='';
+if(e&&e.status==429){gmOff=Date.now()+((/per.?day/i.test(String(e.message)))?6*3600e3:5*60e3);toast('Gemini 额度用完或请求太快，已改用 Chrome 评分，再读一次',4500)}
+else toast(gmErr(e),4500)}
+finally{const b=$('mcRec');if(b){b.disabled=false;mcUi(false)}}}
+
+/* ===== 更多 → 跟读设置（评分方式、Gemini 密钥、模型名） ===== */
+function gmVal(){const g=LS.g('mv_gm_eng','chrome')=='gemini';$('mgEv').textContent=g?'Gemini（更细）':'Chrome（免费）';$('mGmV').textContent=(g&&gmKey())?'Gemini':'Chrome'}
+$('mGm').onclick=()=>{$('mgK').value=gmKey();$('mgM').value=gmModel();gmVal();$('mg2').style.display='flex'};
+$('mgBk').onclick=()=>{$('mg2').style.display='none'};
+$('bMo').addEventListener('click',gmVal);
+$('mgE').onclick=()=>{const e=LS.g('mv_gm_eng','chrome')=='gemini'?'chrome':'gemini';LS.s('mv_gm_eng',e);if(e=='gemini'&&!gmKey())toast('还没有密钥，先填写并保存');gmVal()};
+$('mgS').onclick=()=>{const k=$('mgK').value.trim(),m=$('mgM').value.trim()||'gemini-flash-lite-latest';LS.s('mv_gm_key',k);LS.s('mv_gm_model',m);gmOff=0;
+if(!k)toast('已清除密钥');else{if(localStorage.getItem('mv_gm_eng')===null)LS.s('mv_gm_eng','gemini');toast(LS.g('mv_gm_eng','chrome')=='gemini'?'已保存，跟读改用 Gemini 评分':'已保存。要用的话，点上面“评分方式”切到 Gemini')}gmVal()};
+$('mgT').onclick=async()=>{const k=$('mgK').value.trim(),m=$('mgM').value.trim()||'gemini-flash-lite-latest';if(!k)return toast('先粘贴密钥');toast('正在测试…',30000);
+try{await gmCall(k,m,[{text:'Reply with the single word OK.'}],{temperature:0});toast('连接成功：'+m,3000)}catch(e){toast(gmErr(e),5000)}};
+gmVal();
+
+function mcSheet(){const c=cues[mcI];if(!c)return;const toks=c.eng.split(/\s+/).filter(Boolean);
+$('rcp').innerHTML=`<div class="sh"><h2>跟读 · 第${mcI+1}句</h2><div id="mcBub"><div id="mcT" style="font-size:21px;line-height:1.55;margin:6px 0">${toks.map(t=>`<span class="mw">${esc(t)}</span>`).join(' ')}</div><div class="cn" style="margin-bottom:6px">${esc(c.chn||'')}</div><div id="mcSay" style="min-height:22px;color:var(--m);font-size:15px"></div><div id="mcSc" style="min-height:64px"></div></div><div class="mcAct"><div class="row" style="justify-content:center"><button class="b on" id="mcRec" style="min-width:200px;font-size:18px;padding:14px 24px">🎤 开始说话</button></div><div class="row"><button class="b" id="mcLs">听原声</button><button class="b" id="mcPv">上一句</button><button class="b" id="mcNx">下一句</button><button class="b" id="mcCl" style="margin-left:auto">关闭</button></div></div></div>`;
+$('mcRec').onclick=mcStart;$('mcLs').onclick=mcListen;$('mcPv').onclick=()=>mcMove(-1);$('mcNx').onclick=()=>mcMove(1);$('mcCl').onclick=mcClose}
+function stopMc(){clearInterval(mcIv);gmClean();const r=mcRec;mcRec=null;mcOn=false;try{r&&r.abort()}catch(e){}}
+function mcClose(){const i=mcI;stopMc();mcOpen=false;cl('rcp');setMc(false);auto=true;usrHold=false;usrUntil=0;btns();if(i>=0&&cues[i]&&v.src){go(i);const e=$('c'+i);if(e)e.scrollIntoView({block:'center'})}else v.pause()}
+$('rcp').onclick=e=>{if(e.target===$('rcp'))mcClose()};
+function mcHi(i){const c=cues[i];if(!c)return;if(cur!==i){if(cur>=0)$('c'+cur)?.classList.remove('cur');cur=i;const e=$('c'+i);if(e)e.classList.add('cur')}try{v.currentTime=c.s+.01}catch(e){}ov(i)}
+function mcOpenSheet(i){document.body.classList.remove('cs');mcI=i;mcOpen=true;v.pause();stopMc();mcHi(i);mcSheet();op('rcp')}
+function mcMove(d){let k=mcI+d;while(cues[k]&&cues[k].seg)k+=d;if(!cues[k])return toast(d<0?'已经是第一句':'已经是最后一句');stopMc();v.pause();mcI=k;mcHi(k);mcSheet();const e=$('c'+k);if(e)e.scrollIntoView({block:'center'})}
+function mcListen(){const c=cues[mcI];if(!c)return;if(!v.src)return toast('先在设置里选视频');stopMc();lock=null;v.currentTime=c.s;v.play();mcIv=setInterval(()=>{if(v.currentTime>=c.e-.03||v.paused||v.ended){v.pause();clearInterval(mcIv)}},40)}
+const mcBt=()=>{const x=$('mcBub');if(x)x.classList.remove('on')};
+const mcUi=(on,t)=>{const b=$('mcRec');if(!b)return;const bb=$('mcBub');clearTimeout(window._mcBT);if(on){if(bb)bb.classList.add('on')}else window._mcBT=setTimeout(mcBt,7000);b.classList.toggle('pz',on);b.classList.toggle('on',!on);b.textContent=t||(on?'正在听…说完点一下':'🎤 再读一次')};
+function mcPaint(s,marks,heard,tip,eng){const c=cues[mcI];if(!c)return;const toks=c.eng.split(/\s+/).filter(Boolean);
+$('mcSay').textContent=heard?'你说的：'+heard:'';
+$('mcT').innerHTML=toks.map((t,i)=>`<span class="mw ${marks[i]||''}">${esc(t)}</span>`).join(' ');
+const col=s>=90?'#5ee08a':s>=75?'#8be28b':s>=50?'#ffd166':'#ff7b7b',lb=s>=90?'很棒！':s>=75?'不错':s>=50?'再练练':'再来一次';
+$('mcSc').innerHTML=`<div><span style="font-size:46px;font-weight:700;color:${col}">${s}</span> 分 · ${lb}</div>`+(tip?`<div style="margin-top:4px;font-size:15px">💡 ${esc(tip)}</div>`:'')+`<div style="color:var(--m);font-size:13px;margin-top:4px">绿：读对　黄：差一点　红：没读出来　· 评分：${eng}</div>`;{const bb=$('mcBub');if(bb)bb.classList.add('on');clearTimeout(window._mcBT);window._mcBT=setTimeout(mcBt,7000)}if(s>=90)chime()}
+function mcResult(cands){const c=cues[mcI];if(!c)return;const toks=c.eng.split(/\s+/).filter(Boolean);let best=null,txt='';
+cands.forEach(s=>{const g=mcGrade(toks,s);if(!best||g.score>best.score){best=g;txt=s}});if(!best)return;
+mcPaint(best.score,best.marks,txt,'','Chrome')}
+function mcStart(){if(gmOn())return gmToggle();const _ge=LS.g('mv_gm_eng','chrome')=='gemini';if(_ge&&!gmKey())toast('还没填 Gemini 密钥，这次用 Chrome 评分');else if(_ge&&Date.now()<=gmOff)toast('Gemini 额度暂时用完，先用 Chrome 评分');if(!SR)return toast('这个浏览器不支持语音识别，请用 Chrome');
+if(mcOn){try{mcRec.stop()}catch(e){}return}
+clearInterval(mcIv);v.pause();let fin='',alts=[],interim='',err='';
+const r=new SR();mcRec=r;r.lang='en-US';r.interimResults=true;r.continuous=false;r.maxAlternatives=3;
+r.onstart=()=>{mcOn=true;mcUi(true);$('mcSay').textContent='请说……';$('mcSc').innerHTML=''};
+r.onresult=e=>{interim='';for(let i=e.resultIndex;i<e.results.length;i++){const R=e.results[i];if(R.isFinal){fin+=(fin?' ':'')+R[0].transcript;alts=[...R].map(a=>a.transcript)}else interim+=R[0].transcript}$('mcSay').textContent='听到：'+(fin+' '+interim).trim()};
+r.onerror=e=>{err=e.error};
+r.onend=()=>{mcOn=false;if(mcRec!==r)return;mcUi(false);const cands=[...new Set([fin].concat(alts).concat(interim&&!fin?[interim]:[]).filter(Boolean))];
+if(cands.length)mcResult(cands);else{$('mcSay').textContent='';toast(err=='not-allowed'||err=='service-not-allowed'?'麦克风没打开。请允许网页使用麦克风；要用网址打开，直接打开文件不行':err=='network'?'语音识别要联网（Chrome 会连谷歌的识别服务）':err=='audio-capture'?'找不到麦克风':err=='aborted'?'':'没听到声音，再说一次')}};
+try{r.start()}catch(e){toast('麦克风启动失败，再点一次')}}
+function setMc(on){mcMode=on;$('bMc').classList.toggle('on',on);$('bMc').textContent=on?'跟读中…':'跟读'}
+$('bMc').onclick=()=>{if(!mcMode){if(selMode){selMode=false;selA=selB=-1;selUi()}if(edMode){edMode=false;edUi()}if(calM){calM=false;$('bCa').classList.remove('on')}}setMc(!mcMode);toast(mcMode?'跟读模式：点一句字幕开始跟读，再点“跟读”退出':'已退出跟读')};
+['bFv','bEd','bCa'].forEach(id=>$(id).addEventListener('click',()=>{if(mcMode)setMc(false)}));
+
+/* ===== 更多页 ===== */
+(function(){const mp=$('mp'),ms=$('ms');
+$('bMo').onclick=()=>{$('mSmV').textContent=SMN[sm];mp.style.display='flex'};
+$('mBk').onclick=()=>{mp.style.display='none'};
+$('mSm').onclick=()=>{$('msL').innerHTML=SMN.map((n,i)=>`<button class="b m ${i==sm?'sel2':''}" data-k="${i}"><span>${n}</span><span class="ck">✓</span></button>`).join('');ms.style.display='flex'};
+$('msBk').onclick=()=>{ms.style.display='none'};$('mCo').onclick=()=>{$('mc').style.display='flex'};$('mcBk').onclick=()=>{$('mc').style.display='none'};
+$('msL').onclick=e=>{const b=e.target.closest('[data-k]');if(!b)return;sm=+b.dataset.k;LS.s('mv_sm',sm);ovk='';btns();ms.style.display='none'};
+mp.addEventListener('click',e=>{if(e.target.closest('[data-c]'))mp.style.display='none'});
+})();
+</script></body></html>
